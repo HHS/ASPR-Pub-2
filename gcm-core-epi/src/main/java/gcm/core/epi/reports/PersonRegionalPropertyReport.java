@@ -64,9 +64,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
 
     public PersonRegionalPropertyReport(ReportPeriod reportPeriod, FipsScope fipsScope, PersonPropertyId... personPropertyIds) {
         super(reportPeriod, fipsScope);
-        for (PersonPropertyId personPropertyId : personPropertyIds) {
-            this.personPropertyIds.add(personPropertyId);
-        }
+        this.personPropertyIds.addAll(Arrays.asList(personPropertyIds));
         ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
         addTimeFieldHeaders(reportHeaderBuilder);
         reportHeader = reportHeaderBuilder

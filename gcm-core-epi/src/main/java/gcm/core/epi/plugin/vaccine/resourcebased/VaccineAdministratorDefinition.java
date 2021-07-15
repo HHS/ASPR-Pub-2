@@ -39,6 +39,9 @@ public abstract class VaccineAdministratorDefinition {
     }
 
     @Value.Default
+    public AgeWeights vaccineInfectedUptakeWeights() { return ImmutableAgeWeights.builder().defaultValue(1.0).build(); }
+
+    @Value.Default
     public Boolean reserveSecondDoses() {
         return true;
     }

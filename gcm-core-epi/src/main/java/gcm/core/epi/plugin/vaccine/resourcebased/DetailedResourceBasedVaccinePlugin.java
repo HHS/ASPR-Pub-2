@@ -49,7 +49,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
@@ -206,8 +205,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         VACCINE_INDEX(TypedPropertyDefinition.builder()
                 .type(Integer.class).defaultValue(-1).build()),
 
-        WILL_GET_VACCINE(TypedPropertyDefinition.builder()
-                .type(Boolean.class).defaultValue(true).build());
+        REFUSES_VACCINE(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
         private final TypedPropertyDefinition propertyDefinition;
 
@@ -351,6 +350,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         private FipsScope administrationScope;
         // Flag for seeing if we are already observing region arrivals
         private final Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
+        // Retain
+        private AgeWeights vaccinationMaximumCoverage;
 
         @Override
         public void init(Environment environment) {
@@ -434,14 +435,17 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPartition(Partition.builder()
-                                // Limit coverage
-                                .setFilter(new PropertyFilter(VaccinePersonProperty.WILL_GET_VACCINE,
-                                        Equality.EQUAL, true))
+                                // Limit coverage to those who have not refused (determined at time of attempt)
+                                .setFilter(new PropertyFilter(VaccinePersonProperty.REFUSES_VACCINE,
+                                        Equality.EQUAL, false))
                                 // Partition regions by FIPS code
                                 .addLabeler(new RegionLabeler(regionId -> administrationScope.getFipsSubCode(regionId)))
                                 // Partition by age group
                                 .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX,
                                         ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
+                                // Partition by prior infection status
+                                .addLabeler(new PersonPropertyLabeler(PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1,
+                                        strainIndex -> ((int) strainIndex) >= 0))
                                 // Partition by risk status
                                 .addLabeler(new PersonPropertyLabeler(PersonProperty.IS_HIGH_RISK, Function.identity()))
                                 // Partition by number of doses
@@ -475,6 +479,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
 
+                // Save coverage to handle updating on trigger logic
+                this.vaccinationMaximumCoverage = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
+
                 // Register to observe changes for triggered property overrides that may restart vaccination
                 environment.observeGlobalPropertyChange(true,
                         VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS);
@@ -482,9 +490,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES);
                 environment.observeGlobalPropertyChange(true,
                         VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
-
-                // Register to observe people being added to the simulation to determine coverage
-                environment.observeGlobalPersonArrival(true);
             }
 
         }
@@ -601,43 +606,43 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                // Create a partition to examine people by whether they will receive vaccine by age
+                // Create a partition to examine people by whether they have refused vaccine by age
                 Object COVERAGE_PARTITION_KEY = new Object();
                 environment.addPartition(Partition.builder()
-                        // Partition by vaccine receipt status
-                        .addLabeler(new PersonPropertyLabeler(VaccinePersonProperty.WILL_GET_VACCINE, Function.identity()))
+                        // Partition by vaccine refusal
+                        .addLabeler(new PersonPropertyLabeler(VaccinePersonProperty.REFUSES_VACCINE, Function.identity()))
                         // Partition by age group
                         .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
                         .build(), COVERAGE_PARTITION_KEY);
                 // Iterate over age groups and increase maximum coverage as needed;
-                AgeWeights vaccinationMaximumCoverage = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
+                AgeWeights newVaccinationMaximumCoverage = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
                 for (AgeGroup ageGroup : ageGroups) {
-                    int population = environment.getPartitionSize(COVERAGE_PARTITION_KEY,
-                            LabelSet.builder()
-                                    .setLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                    .build());
-                    int populationToBeVaccinated = environment.getPartitionSize(COVERAGE_PARTITION_KEY,
-                            LabelSet.builder()
-                                    .setLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                    .setLabel(VaccinePersonProperty.WILL_GET_VACCINE, true)
-                                    .build());
-                    double fractionToBeVaccinated = (double) populationToBeVaccinated / population;
-                    double fractionToAdd = Math.max(vaccinationMaximumCoverage.getWeight(ageGroup) - fractionToBeVaccinated, 0);
-                    int numberToAdd = (int) Math.round((double) population * fractionToAdd);
-                    IntStream.range(0, numberToAdd).forEach(x -> {
-                            Optional<PersonId> personId = environment.samplePartition(COVERAGE_PARTITION_KEY,
-                                    PartitionSampler.builder()
-                                            .setLabelSet(LabelSet.builder()
-                                                    .setLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                                    .setLabel(VaccinePersonProperty.WILL_GET_VACCINE, false)
-                                                    .build())
-                                            .setRandomNumberGeneratorId(VaccineRandomId.COVERAGE_ID)
+                    double currentCoverage = vaccinationMaximumCoverage.getWeight(ageGroup);
+                    if (currentCoverage < 1.0) {
+                        // Fraction of people who have currently refused that should not have under new coverage
+                        double refusalRatio = (1.0 - newVaccinationMaximumCoverage.getWeight(ageGroup)) / (1.0 - currentCoverage);
+                        if (refusalRatio > 1.0) {
+                            throw new RuntimeException("Vaccine coverage can only increase with a trigger");
+                        } else {
+                            // refusalRatio < 1.0
+                            List<PersonId> peopleWhoHaveRefused = environment.getPartitionPeople(COVERAGE_PARTITION_KEY,
+                                    LabelSet.builder()
+                                            .setLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                            .setLabel(VaccinePersonProperty.REFUSES_VACCINE, true)
                                             .build());
-                        personId.ifPresent(id -> environment.setPersonPropertyValue(id, VaccinePersonProperty.WILL_GET_VACCINE, true));
-                    });
+                            // Reset refusal for the appropriate fraction of people
+                            for (PersonId personId : peopleWhoHaveRefused) {
+                                if (environment.getRandomGeneratorFromId(VaccineRandomId.COVERAGE_ID).nextDouble() >= refusalRatio) {
+                                    environment.setPersonPropertyValue(personId, VaccinePersonProperty.REFUSES_VACCINE, false);
+                                }
+                            }
+                        }
+                    }
                 }
                 // Remove partition
                 environment.removePartition(COVERAGE_PARTITION_KEY);
+                // Store new vaccination maximum coverage
+                vaccinationMaximumCoverage = newVaccinationMaximumCoverage;
                 // Restart vaccination if needed due to coverage changes
                 double vaccinationStartDay = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_START_DAY);
                 if (environment.getTime() >= vaccinationStartDay) {
@@ -673,22 +678,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent()) {
                     fipsCodesWithNoFirstDosesPeople.get(entry.getKey()).remove(fipsCode);
                     vaccinateAndScheduleNext(environment, entry.getKey(), fipsCode);
-                }
-            }
-        }
-
-        @Override
-        public void observeGlobalPersonArrival(Environment environment, PersonId personId) {
-            // Determine if person will receive vaccine
-            AgeWeights maximumCoverage = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                    GlobalProperty.POPULATION_DESCRIPTION);
-            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-            int ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
-            double maximumCoverageForAgeGroup = maximumCoverage.getWeight(ageGroups.get(ageGroupIndex));
-            if (maximumCoverageForAgeGroup < 1.0) {
-                if (environment.getRandomGeneratorFromId(VaccineRandomId.COVERAGE_ID).nextDouble() >= maximumCoverageForAgeGroup) {
-                    environment.setPersonPropertyValue(personId, VaccinePersonProperty.WILL_GET_VACCINE, false);
                 }
             }
         }
@@ -866,7 +855,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 VaccineDefinition vaccineDefinition = vaccineDefinitionMap.get(vaccineId);
 
                 // Next select the person to vaccinate
-                final Optional<PersonId> personId;
+                Optional<PersonId> personId = Optional.empty();
                 boolean postponedAttempt = false;
                 // If this is a two-dose vaccine need to choose between vaccinating a new person and giving the second dose
                 //  We randomly proportionally allocate effort taking into account the fraction that will return for a second dose
@@ -901,32 +890,74 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 .build();
                         // First cache some population cell sizes for sampling normalization
                         Map<LabelSet, Integer> cellSizeMap = environment.getPartitionSizeMap(VACCINE_PARTITION_KEY, fipsCodeFirstDoseLabelSet);
-                        Map<AgeGroup, Integer> populationByAgeInFipsCode = cellSizeMap.entrySet().stream()
-                                .collect(Collectors.groupingBy(entry -> (AgeGroup) entry.getKey().getLabel(PersonProperty.AGE_GROUP_INDEX).get(),
-                                        Collectors.summingInt(entry -> entry.getValue())));
-                        // Now select the person
-                        personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
-                                .setLabelSet(fipsCodeFirstDoseLabelSet)
-                                .setLabelSetWeightingFunction((context, labelSet) -> {
-                                    // We know this labelSet will have a label for this person property
-                                    //noinspection OptionalGetWithoutIsPresent
+                        Map<AgeGroup, Integer> populationByAgeInFipsCode = new HashMap<>();
+                        //Map<Pair<AgeGroup, Boolean>, Integer> populationByAgeAndPriorInfectionInFipsCode = new HashMap<>();
+                        cellSizeMap.forEach(
+                                (labelSet, population) -> {
                                     AgeGroup ageGroup = (AgeGroup) labelSet.getLabel(PersonProperty.AGE_GROUP_INDEX).get();
-                                    //noinspection OptionalGetWithoutIsPresent
-                                    boolean isHighRisk = (boolean) labelSet.getLabel(PersonProperty.IS_HIGH_RISK).get();
-                                    int populationInFipsCodeAndAge = populationByAgeInFipsCode.get(ageGroup);
-                                    return vaccineUptakeWeights.getWeight(ageGroup) *
-                                            // Handle uptake normalization
-                                            (uptakeNormalization == VaccineAdministratorDefinition.UptakeNormalization.POPULATION ?
-                                                    1.0 : (populationInFipsCodeAndAge > 0L ? 1.0 / populationInFipsCodeAndAge : 0.0)) *
-                                            (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
-                                })
-                                .setRandomNumberGeneratorId(VaccineRandomId.ID)
-                                .build());
-                        if (!personId.isPresent()) {
-                            // Note that there are no more people to whom to give first doses
-                            fipsCodesWithNoFirstDosesPeople.get(vaccineAdministratorId).add(fipsCode);
-                            someoneToGiveFirstDosesTo.set(false);
+                                    boolean wasInfected = (boolean) labelSet.getLabel(PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1).get();
+                                    Pair<AgeGroup, Boolean> ageGroupWithInfectionStatus = new Pair<>(ageGroup, wasInfected);
+                                    // Accumulate population by age and age/infection
+                                    populationByAgeInFipsCode.put(ageGroup,
+                                            populationByAgeInFipsCode.getOrDefault(ageGroup, 0) + population);
+//                                    populationByAgeAndPriorInfectionInFipsCode.put(ageGroupWithInfectionStatus,
+//                                            populationByAgeAndPriorInfectionInFipsCode.getOrDefault(ageGroupWithInfectionStatus,
+//                                                    0) + population);
+                                }
+                        );
+                        // Now select the person
+                        boolean refuses = true;
+                        while(refuses) {
+                            personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
+                                    .setLabelSet(fipsCodeFirstDoseLabelSet)
+                                    .setLabelSetWeightingFunction((context, labelSet) -> {
+                                        // We know this labelSet will have a label for this person property
+                                        //noinspection OptionalGetWithoutIsPresent
+                                        AgeGroup ageGroup = (AgeGroup) labelSet.getLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                                        //noinspection OptionalGetWithoutIsPresent
+                                        boolean isHighRisk = (boolean) labelSet.getLabel(PersonProperty.IS_HIGH_RISK).get();
+                                        //noinspection OptionalGetWithoutIsPresent
+                                        boolean wasInfected = (boolean) labelSet.getLabel(PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1).get();
+                                        int populationInFipsCodeAndAge = populationByAgeInFipsCode.get(ageGroup);
+                                        double maximumCoverage = vaccinationMaximumCoverage.getWeight(ageGroup);
+                                        return vaccineUptakeWeights.getWeight(ageGroup) *
+                                                // Handle uptake normalization
+                                                (uptakeNormalization == VaccineAdministratorDefinition.UptakeNormalization.POPULATION ?
+                                                        1.0 : (populationInFipsCodeAndAge > 0L ? 1.0 / populationInFipsCodeAndAge : 0.0)) *
+                                                // Uptake adjustment - divide by expected fraction that will be vaccinated among remaining
+                                                (maximumCoverage > 0.0 ? 1.0 / maximumCoverage : 0.0) *
+                                                // Prior infection adjustment
+                                                (wasInfected ? vaccineAdministratorDefinition.vaccineInfectedUptakeWeights().getWeight(ageGroup) : 1.0) *
+                                                // Risk status adjustment
+                                                (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
+                                    })
+                                    .setRandomNumberGeneratorId(VaccineRandomId.ID)
+                                    .build());
+                            if (personId.isPresent()) {
+                                // Determine vaccine refusal
+                                List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+                                int ageGroupIndex = environment.getPersonPropertyValue(personId.get(), PersonProperty.AGE_GROUP_INDEX);
+                                AgeGroup ageGroup = ageGroups.get(ageGroupIndex);
+                                refuses = environment.getRandomGeneratorFromId(VaccineRandomId.COVERAGE_ID).nextDouble()
+                                        < 1.0 - vaccinationMaximumCoverage.getWeight(ageGroups.get(ageGroupIndex));
+                                if (refuses) {
+                                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.REFUSES_VACCINE, true);
+                                    // Adjust cached population counts for eligible population
+                                    populationByAgeInFipsCode.put(ageGroup, populationByAgeInFipsCode.get(ageGroup) - 1);
+//                                    boolean wasInfected = (int) environment.getPersonPropertyValue(personId.get(),
+//                                            PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1) >= 0;
+//                                    Pair<AgeGroup, Boolean> ageGroupWithInfectionStatus = new Pair<>(ageGroup, wasInfected);
+//                                    populationByAgeAndPriorInfectionInFipsCode.put(ageGroupWithInfectionStatus,
+//                                            populationByAgeAndPriorInfectionInFipsCode.get(ageGroupWithInfectionStatus) - 1);
+                                }
+                            } else {
+                                // Note that there are no more people to whom to give first doses
+                                fipsCodesWithNoFirstDosesPeople.get(vaccineAdministratorId).add(fipsCode);
+                                someoneToGiveFirstDosesTo.set(false);
+                                break;
+                            }
                         }
+
                     } else {
                         personId = Optional.empty();
                     }

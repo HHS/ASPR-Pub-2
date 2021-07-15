@@ -22,10 +22,6 @@ public interface VaccineAdministratorDefinitionOverride {
     @Nullable
     AgeWeights vaccineHighRiskUptakeWeights();
 
-    // Don't think this needs overrides
-    // @Nullable
-    // Boolean reserveSecondDoses();
-
     @Nullable
     Double fractionReturnForSecondDose();
 

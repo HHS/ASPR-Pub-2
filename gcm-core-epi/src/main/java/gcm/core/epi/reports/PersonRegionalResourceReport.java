@@ -24,10 +24,7 @@ import plugins.resources.support.ResourceId;
 import util.annotations.Source;
 import util.annotations.TestStatus;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A periodic Report that displays number of people who have/do not have any
@@ -82,9 +79,7 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
         super(reportPeriod, fipsScope);
         this.reportPeopleWithoutResources = reportPeopleWithoutResources;
         this.reportZeroPopulations = reportZeroPopulations;
-        for(ResourceId resourceId : resourceIds) {
-            this.resourceIds.add(resourceId);
-        }
+        this.resourceIds.addAll(Arrays.asList(resourceIds));
         ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
         addTimeFieldHeaders(reportHeaderBuilder);
         reportHeaderBuilder
@@ -219,7 +214,6 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
                 add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
             }
         } else {
-            amount = -amount;
             final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
             if (personResourceLevel == 0) {
                 final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
