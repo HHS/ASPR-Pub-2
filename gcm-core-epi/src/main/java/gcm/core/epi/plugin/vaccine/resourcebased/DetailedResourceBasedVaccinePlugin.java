@@ -789,7 +789,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     RegionId regionId = environment.getPersonRegion(secondDoseQueuePlan.personId);
                     FipsCode fipsCode = administrationScope.getFipsSubCode(regionId);
                     MultiKey multiKey = new MultiKey(vaccineAdministratorId, fipsCode);
-                    if (!environment.getPlan(multiKey).isPresent()) {
+                    if (!environment.getPlan(multiKey).isPresent() &&
+                            interVaccinationDelayDistributions.get(vaccineAdministratorId).containsKey(fipsCode)) {
                         vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
                     }
                 }
