@@ -533,6 +533,14 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                             builder.fractionReturnForSecondDose(definitionOverride.fractionReturnForSecondDose());
                             // Does not require reconsideration of vaccination plan
                         }
+                        if (definitionOverride.forceSecondDoseFraction() != null) {
+                            builder.forceSecondDoseFraction(definitionOverride.forceSecondDoseFraction());
+                            // Does not require reconsideration of vaccination plan
+                        }
+                        if (definitionOverride.secondDoseFraction() != null) {
+                            builder.secondDoseFraction(definitionOverride.secondDoseFraction());
+                            // Does not require reconsideration of vaccination plan
+                        }
                         vaccineAdministratorMap.put(vaccineAdministratorId, builder.build());
                     }
                 }
@@ -860,10 +868,16 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 boolean postponedAttempt = false;
                 // If this is a two-dose vaccine need to choose between vaccinating a new person and giving the second dose
                 //  We randomly proportionally allocate effort taking into account the fraction that will return for a second dose
+                double secondDoseFraction;
+                // Allow administrator definition to override the second dose fraction
+                if (vaccineAdministratorDefinition.forceSecondDoseFraction()) {
+                    secondDoseFraction = vaccineAdministratorDefinition.secondDoseFraction();
+                } else {
+                    secondDoseFraction = vaccineAdministratorDefinition.fractionReturnForSecondDose() /
+                            (1.0 + vaccineAdministratorDefinition.fractionReturnForSecondDose());
+                }
                 if (!someoneToGiveFirstDosesTo.get() || (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
-                        (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() <
-                                (vaccineAdministratorDefinition.fractionReturnForSecondDose() /
-                                        (1.0 + vaccineAdministratorDefinition.fractionReturnForSecondDose()))))) {
+                        (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() < secondDoseFraction))) {
                     // Vaccinate a person with a second dose if needed
                     ArrayDeque<PersonId> secondDosePriority = secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId);
                     if (secondDosePriority.isEmpty()) {

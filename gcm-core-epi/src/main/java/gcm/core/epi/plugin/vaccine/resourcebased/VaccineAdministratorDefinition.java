@@ -51,4 +51,10 @@ public abstract class VaccineAdministratorDefinition {
         return 1.0;
     }
 
+    @Value.Default
+    public Boolean forceSecondDoseFraction() { return false; }
+
+    @Value.Default
+    public Double secondDoseFraction() { return fractionReturnForSecondDose() / (1.0 + fractionReturnForSecondDose()); }
+
 }

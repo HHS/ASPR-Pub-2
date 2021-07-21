@@ -25,4 +25,10 @@ public interface VaccineAdministratorDefinitionOverride {
     @Nullable
     Double fractionReturnForSecondDose();
 
+    @Nullable
+    Boolean forceSecondDoseFraction();
+
+    @Nullable
+    Double secondDoseFraction();
+
 }
