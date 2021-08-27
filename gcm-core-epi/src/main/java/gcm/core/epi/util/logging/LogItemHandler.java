@@ -3,7 +3,6 @@ package gcm.core.epi.util.logging;
 import gcm.core.epi.Runner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import plugins.components.support.OutputItem;
 import plugins.gcm.experiment.ReplicationId;
 import plugins.gcm.experiment.ScenarioId;
 import plugins.gcm.experiment.output.LogItem;
@@ -39,8 +38,8 @@ public class LogItemHandler implements OutputItemHandler {
     }
 
     @Override
-    public void handle(ScenarioId scenarioId, ReplicationId replicationId, OutputItem outputItem) {
-        LogItem logItem = (LogItem) outputItem;
+    public void handle(ScenarioId scenarioId, ReplicationId replicationId, Object output) {
+        LogItem logItem = (LogItem) output;
         StringBuilder sb = new StringBuilder();
         if (scenarioId.getValue() != -1 || replicationId.getValue() != -1) {
             sb.append("[Scenario = ");
@@ -60,8 +59,8 @@ public class LogItemHandler implements OutputItemHandler {
     }
 
     @Override
-    public Set<Class<? extends OutputItem>> getHandledClasses() {
-        Set<Class<? extends OutputItem>> result = new LinkedHashSet<>();
+    public Set<Class<?>> getHandledClasses() {
+        Set<Class<?>> result = new LinkedHashSet<>();
         result.add(LogItem.class);
         return result;
     }

@@ -70,7 +70,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
                 this::handlePersonPropertyChangeObservationEvent);
         reportContext.subscribe(PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, PersonProperty.IS_DEAD),
                 this::handlePersonPropertyChangeObservationEvent);
-        reportContext.subscribe(PersonCompartmentChangeObservationEvent.getEventLabelByArrivalComparment(reportContext, Compartment.INFECTED),
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.getEventLabelByArrivalCompartment(reportContext, Compartment.INFECTED),
                 this::handlePersonCompartmentChangeObservationEvent);
         reportContext.subscribe(PersonResourceChangeObservationEvent.getEventLabelByResource(reportContext,
                 Resource.HOSPITAL_BED), this::handlePersonResourceChangeObservationEvent);

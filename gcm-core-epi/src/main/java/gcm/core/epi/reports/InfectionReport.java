@@ -6,7 +6,7 @@ import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.InfectionData;
 import nucleus.ReportContext;
 import plugins.globals.datacontainers.GlobalDataView;
-import plugins.globals.events.GlobalPropertyChangeObservationEvent;
+import plugins.globals.events.observation.GlobalPropertyChangeObservationEvent;
 import plugins.people.support.PersonId;
 import plugins.personproperties.datacontainers.PersonPropertyDataView;
 import plugins.reports.support.ReportHeader;

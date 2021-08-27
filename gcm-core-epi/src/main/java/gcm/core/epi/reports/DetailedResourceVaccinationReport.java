@@ -8,7 +8,7 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.globals.datacontainers.GlobalDataView;
-import plugins.globals.events.GlobalPropertyChangeObservationEvent;
+import plugins.globals.events.observation.GlobalPropertyChangeObservationEvent;
 import plugins.regions.datacontainers.RegionDataView;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
