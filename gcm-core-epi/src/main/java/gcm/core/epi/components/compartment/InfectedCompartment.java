@@ -58,8 +58,8 @@ public class InfectedCompartment extends DiseaseCompartment {
         AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
         // Immunity effect
         float recoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
-        double probabilityImmunityFails = recoveryTime < 0 ? 1.0 :
-                1.0 - (double) environment.getGlobalPropertyValue(GlobalProperty.WANING_IMMUNITY_DISEASE_PROTECTION);
+        double probabilityImmunityFails = recoveryTime < Double.POSITIVE_INFINITY ?
+                1.0 - (double) environment.getGlobalPropertyValue(GlobalProperty.WANING_IMMUNITY_DISEASE_PROTECTION) : 1.0;
         // Vaccine effect
         Optional<VaccinePlugin> vaccinePlugin = environment.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
         final double probabilityVaccineFails = vaccinePlugin
