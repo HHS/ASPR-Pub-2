@@ -26,7 +26,7 @@ public class SeasonalTransmissionPlugin implements TransmissionPlugin {
 
         // Cheat and adjust time to think that we're back in first year so things happen yearly
         double time = environment.getTime() % 365.0;
-        if (transmissionDeclineStart + transmissionDeclineDuration + transmissionNadirDuration + +transmissionInclineDuration > 365.0)
+        if (transmissionDeclineStart + transmissionDeclineDuration + transmissionNadirDuration + transmissionInclineDuration > 365.0)
             throw new IllegalArgumentException("Seasonality duration cannot be longer than one year. Use negative start time if required.");
 
         if (time <= transmissionDeclineStart |

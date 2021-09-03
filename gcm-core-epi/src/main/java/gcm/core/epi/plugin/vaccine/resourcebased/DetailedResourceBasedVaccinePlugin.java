@@ -72,26 +72,26 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public double getVES(Environment environment, PersonId personId, VariantId variantId) {
-        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_S);
+        return getEfficacyFunctionValue(environment, personId, variantId, EfficacyType.VE_S);
     }
 
     @Override
     public double getVEI(Environment environment, PersonId personId, VariantId variantId) {
-        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_I);
+        return getEfficacyFunctionValue(environment, personId, variantId, EfficacyType.VE_I);
     }
 
     @Override
     public double getVEP(Environment environment, PersonId personId, VariantId variantId) {
-        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_P);
+        return getEfficacyFunctionValue(environment, personId, variantId, EfficacyType.VE_P);
     }
 
     @Override
     public double getVED(Environment environment, PersonId personId, VariantId variantId) {
-        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_D);
+        return getEfficacyFunctionValue(environment, personId, variantId, EfficacyType.VE_D);
     }
 
     private double getEfficacyFunctionValue(Environment environment, PersonId personId, VariantId variantId,
-                                            VaccineDefinition.EfficacyType efficacyType) {
+                                            EfficacyType efficacyType) {
         long numberOfDoses = environment.getPersonResourceLevel(personId, VaccineResourceId.VACCINE);
         if (numberOfDoses > 0) {
             List<VaccineDefinition> vaccineDefinitions = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINE_DEFINITIONS);
@@ -102,7 +102,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             VaccineDefinition vaccineDefinition = vaccineDefinitions.get(vaccineIndex);
             double vaccinationTime = environment.getPersonResourceTime(personId, VaccineResourceId.VACCINE);
             double relativeTime = environment.getTime() - vaccinationTime;
-            return vaccineDefinition.getVaccineEfficacy(numberOfDoses, relativeTime, variantId, efficacyType);
+            return vaccineDefinition.getVaccineEfficacy(efficacyType, relativeTime, variantId, numberOfDoses);
         } else {
             return 0.0;
         }
