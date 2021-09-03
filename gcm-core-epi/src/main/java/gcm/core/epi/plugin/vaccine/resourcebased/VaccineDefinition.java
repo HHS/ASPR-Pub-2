@@ -31,7 +31,7 @@ public abstract class VaccineDefinition {
 
     // Only used for TWO_DOSE type
     @Value.Default
-    Map<ExternalEfficacyType, Double> relativeEfficacyOfFirstDose() {
+    Map<ExternalEfficacyType, Double> firstDoseRelativeEfficacy() {
         return new EnumMap<>(ExternalEfficacyType.class);
     }
 
@@ -96,7 +96,7 @@ public abstract class VaccineDefinition {
         return efficacy().entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey(),
-                        entry -> entry.getValue() * relativeEfficacyOfFirstDose().getOrDefault(entry.getKey(), 1.0)
+                        entry -> entry.getValue() * firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), 1.0)
                 ));
     }
 
@@ -136,7 +136,7 @@ public abstract class VaccineDefinition {
                                     entry -> entry.getKey(),
                                     entry -> entry.getValue() *
                                             firstDoseRelativeEfficacy.getOrDefault(entry.getKey(), 1.0) *
-                                            relativeEfficacyOfFirstDose().getOrDefault(entry.getKey(), 1.0)
+                                            firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), 1.0)
                             )));
         }
         return variantFirstDoseEfficacy;

@@ -56,7 +56,7 @@ public class TestVariantEfficacy {
                 .putEfficacy(ExternalEfficacyType.VE_S, VES)
                 .putEfficacy(ExternalEfficacyType.VE_SP, VESP)
                 .putEfficacy(ExternalEfficacyType.VE_SPD, VESPD)
-                .putRelativeEfficacyOfFirstDose(ExternalEfficacyType.VE_S, firstDoseRelativeEfficacy)
+                .putFirstDoseRelativeEfficacy(ExternalEfficacyType.VE_S, firstDoseRelativeEfficacy)
                 .putVariantRelativeEfficacy(otherVariant, variantEfficacy)
                 .putVariantFirstDoseRelativeEfficacy(otherVariant, variantEfficacy)
                 .build();
@@ -135,7 +135,7 @@ public class TestVariantEfficacy {
                 .putEfficacy(ExternalEfficacyType.VE_SP, 0.95)
                 .putEfficacy(ExternalEfficacyType.VE_SPD, 0.98)
                 .putEfficacy(ExternalEfficacyType.VE_I, 0.2)
-                .putRelativeEfficacyOfFirstDose(ExternalEfficacyType.VE_S, 0.5)
+                .putFirstDoseRelativeEfficacy(ExternalEfficacyType.VE_S, 0.5)
                 .putVariantRelativeEfficacy(otherVariant, variantRelativeEfficacy)
                 .build();
 
