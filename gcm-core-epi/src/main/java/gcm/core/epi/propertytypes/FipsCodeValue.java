@@ -25,6 +25,11 @@ public abstract class FipsCodeValue<T> {
         return values().getOrDefault(fipsCode, defaultValue());
     }
 
+    public T getValue(FipsCode fipsCode) {
+        FipsCode fipsCodeForValue = scope().getFipsSubCode(fipsCode);
+        return values().getOrDefault(fipsCodeForValue, defaultValue());
+    }
+
     @JsonCreator
     public FipsCodeValue<T> of(T value) {
         return ImmutableFipsCodeValue.<T>builder().defaultValue(value).build();

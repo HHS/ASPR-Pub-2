@@ -18,6 +18,7 @@ import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import nucleus.ReportContext;
+import org.slf4j.LoggerFactory;
 import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
@@ -117,6 +118,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         return resourcePropertyMap;
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Override
     public String getVaccineStatusString(ReportContext reportContext, PersonId personId) {
         long numberOfDoses = reportContext.getDataView(ResourceDataView.class).get()
@@ -259,8 +261,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
         VACCINATION_MAXIMUM_COVERAGE(TypedPropertyDefinition.builder()
-                .type(AgeWeights.class)
-                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder()
+                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                        .build())
                 .build()),
 
         // Used for overriding properties only
@@ -351,7 +356,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         // Flag for seeing if we are already observing region arrivals
         private final Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
         // Retain
-        private AgeWeights vaccinationMaximumCoverage;
+        private FipsCodeValue<AgeWeights> vaccinationMaximumCoverage;
 
         @Override
         public void init(Environment environment) {
@@ -482,6 +487,15 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 // Save coverage to handle updating on trigger logic
                 this.vaccinationMaximumCoverage = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
+                // Check maximum coverage FIPS scope is not finer than vaccine administrator scope
+                for (VaccineAdministratorDefinition vaccineAdministratorDefinition : vaccineAdministratorDefinitions) {
+                    if (!vaccinationMaximumCoverage.scope().hasBroaderScopeThan(
+                            vaccineAdministratorDefinition.vaccinationRatePerDay().scope())) {
+                        throw new RuntimeException("Vaccination maximum coverage cannot have finer geographic scope " +
+                                "than vaccination administrator: " + vaccineAdministratorDefinition.id());
+                    }
+                }
+
 
                 // Register to observe changes for triggered property overrides that may restart vaccination
                 environment.observeGlobalPropertyChange(true,
@@ -610,7 +624,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 );
                 environment.setGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION, allocation);
             } else if (globalPropertyId.equals(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE)) {
-                // Note: this code assumes coverage overrides are non-decreasing
+                FipsCodeValue<AgeWeights> newVaccinationMaximumCoverage = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
+                if (newVaccinationMaximumCoverage.scope() != vaccinationMaximumCoverage.scope()) {
+                    throw new RuntimeException("Cannot change scope of vaccination maximum coverage in override");
+                }
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
@@ -619,22 +637,27 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 environment.addPartition(Partition.builder()
                         // Partition by vaccine refusal
                         .addLabeler(new PersonPropertyLabeler(VaccinePersonProperty.REFUSES_VACCINE, Function.identity()))
+                        // Partition by region
+                        .addLabeler(new RegionLabeler(regionId -> regionId))
                         // Partition by age group
                         .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
                         .build(), COVERAGE_PARTITION_KEY);
-                // Iterate over age groups and increase maximum coverage as needed;
-                AgeWeights newVaccinationMaximumCoverage = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
-                for (AgeGroup ageGroup : ageGroups) {
-                    double currentCoverage = vaccinationMaximumCoverage.getWeight(ageGroup);
-                    if (currentCoverage < 1.0) {
-                        // Fraction of people who have currently refused that should not have under new coverage
-                        double refusalRatio = (1.0 - newVaccinationMaximumCoverage.getWeight(ageGroup)) / (1.0 - currentCoverage);
-                        if (refusalRatio > 1.0) {
-                            throw new RuntimeException("Vaccine coverage can only increase with a trigger");
-                        } else {
-                            // refusalRatio < 1.0
+                for (RegionId regionId : populationDescription.regionIds()) {
+                    for (AgeGroup ageGroup : ageGroups) {
+                        double currentMaximumCoverage = vaccinationMaximumCoverage.getValue(regionId).getWeight(ageGroup);
+                        double newMaximumCoverage = newVaccinationMaximumCoverage.getValue(regionId).getWeight(ageGroup);
+                        double refusalRatio = currentMaximumCoverage < 1.0 ?
+                                (1.0 - newMaximumCoverage) / newMaximumCoverage *
+                                        currentMaximumCoverage / (1.0 - currentMaximumCoverage) :
+                                0.0;
+                        if (refusalRatio > 1.0)  {
+                            LoggerFactory.getLogger(DetailedResourceBasedVaccinePlugin.class).warn(
+                                    "Vaccination maximum coverage decreased by override, which may not be possible to implement. RegionId: " +
+                                    regionId.toString());
+                        } else if (refusalRatio < 1.0) {
                             List<PersonId> peopleWhoHaveRefused = environment.getPartitionPeople(COVERAGE_PARTITION_KEY,
                                     LabelSet.builder()
+                                            .setLabel(RegionId.class, regionId)
                                             .setLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
                                             .setLabel(VaccinePersonProperty.REFUSES_VACCINE, true)
                                             .build());
@@ -934,7 +957,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                         //noinspection OptionalGetWithoutIsPresent
                                         boolean wasInfected = (boolean) labelSet.getLabel(PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1).get();
                                         int populationInFipsCodeAndAge = populationByAgeInFipsCode.get(ageGroup);
-                                        double maximumCoverage = vaccinationMaximumCoverage.getWeight(ageGroup);
+                                        double maximumCoverage = vaccinationMaximumCoverage.getValue(fipsCode).getWeight(ageGroup);
                                         return vaccineUptakeWeights.getWeight(ageGroup) *
                                                 // Handle uptake normalization
                                                 (uptakeNormalization == VaccineAdministratorDefinition.UptakeNormalization.POPULATION ?
@@ -954,7 +977,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 int ageGroupIndex = environment.getPersonPropertyValue(personId.get(), PersonProperty.AGE_GROUP_INDEX);
                                 AgeGroup ageGroup = ageGroups.get(ageGroupIndex);
                                 refuses = environment.getRandomGeneratorFromId(VaccineRandomId.COVERAGE_ID).nextDouble()
-                                        < 1.0 - vaccinationMaximumCoverage.getWeight(ageGroups.get(ageGroupIndex));
+                                        < 1.0 - vaccinationMaximumCoverage.getValue(fipsCode).getWeight(ageGroups.get(ageGroupIndex));
                                 if (refuses) {
                                     environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.REFUSES_VACCINE, true);
                                     // Adjust cached population counts for eligible population

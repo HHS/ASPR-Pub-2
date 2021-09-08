@@ -95,7 +95,7 @@ public abstract class VaccineDefinition {
     @Value.Derived Map<ExternalEfficacyType, Double> firstDoseEfficacy() {
         return efficacy().entrySet().stream()
                 .collect(Collectors.toMap(
-                        entry -> entry.getKey(),
+                        Map.Entry::getKey,
                         entry -> entry.getValue() * firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), 1.0)
                 ));
     }
@@ -114,7 +114,7 @@ public abstract class VaccineDefinition {
             variantEfficacy.put(variantId,
                     efficacy().entrySet().stream()
                     .collect(Collectors.toMap(
-                            entry -> entry.getKey(),
+                            Map.Entry::getKey,
                             entry -> relativeEfficacy.getOrDefault(entry.getKey(), 1.0) * entry.getValue()
                                 )));
         }
@@ -133,7 +133,7 @@ public abstract class VaccineDefinition {
             variantFirstDoseEfficacy.put(variantId,
                     variantEfficacy().get(variantId).entrySet().stream()
                             .collect(Collectors.toMap(
-                                    entry -> entry.getKey(),
+                                    Map.Entry::getKey,
                                     entry -> entry.getValue() *
                                             firstDoseRelativeEfficacy.getOrDefault(entry.getKey(), 1.0) *
                                             firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), 1.0)
