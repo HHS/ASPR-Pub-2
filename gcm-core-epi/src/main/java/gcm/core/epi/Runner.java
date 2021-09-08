@@ -156,6 +156,9 @@ public class Runner {
         if (configuration.vaccinePlugin().isPresent()) {
             pluginList.add(configuration.vaccinePlugin().get().getPluginClass().getDeclaredConstructor().newInstance());
         }
+        if (configuration.therapeuticPlugin().isPresent()) {
+            pluginList.add(configuration.therapeuticPlugin().get().getPluginClass().getDeclaredConstructor().newInstance());
+        }
 
         for (Plugin plugin : pluginList) {
             plugin.load(experimentBuilder);

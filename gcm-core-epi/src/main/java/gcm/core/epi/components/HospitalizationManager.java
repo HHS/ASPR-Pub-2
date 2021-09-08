@@ -1,6 +1,7 @@
 package gcm.core.epi.components;
 
 import gcm.core.epi.identifiers.*;
+import gcm.core.epi.plugin.therapeutic.TherapeuticPlugin;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
@@ -149,11 +150,18 @@ public class HospitalizationManager extends AbstractComponent {
                         .map(plugin -> plugin.getVED(environment, personId, variantId))
                         .orElse(0.0);
 
+                // Reduced risk of hospitalization
+                Optional<TherapeuticPlugin> therapeuticPlugin = environment.getGlobalPropertyValue(
+                        GlobalProperty.THERAPEUTIC_PLUGIN);
+                final double probabilityTherapeuticsFailHospitalization = therapeuticPlugin
+                        .map(plugin -> 1.0 - plugin.getTEH(environment, personId, variantId))
+                        .orElse(1.0);
+
                 double adjustedCaseHospitalizationRatio = caseHospitalizationRatio * relativeSeverityFromStrain /
                         (fractionHighRiskForAgeGroup * highRiskMultiplierForAgeGroup +
                                 (1.0 - fractionHighRiskForAgeGroup)) *
                         (isHighRisk ? highRiskMultiplierForAgeGroup : 1.0) *
-                        (1.0 - relativeVaccineProtection);
+                        (1.0 - relativeVaccineProtection) * probabilityTherapeuticsFailHospitalization;
 
                 if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() <=
                         adjustedCaseHospitalizationRatio) {
@@ -183,9 +191,13 @@ public class HospitalizationManager extends AbstractComponent {
                     Map<AgeGroup, Double> caseFatalityRatios = environment.getGlobalPropertyValue(
                             GlobalProperty.CASE_FATALITY_RATIO);
 
-                    // Age-group specific values
+                    final double probabilityTherapeuticsFailDeath = therapeuticPlugin
+                            .map(plugin -> 1.0 - plugin.getTED(environment, personId, variantId))
+                            .orElse(1.0);
+
+                    // Age-group specific values adjusted for vaccine and therapeutic effect
                     double hospitalizationFatalityRatio = caseFatalityRatios.get(ageGroup) /
-                            caseHospitalizationRatios.get(ageGroup);
+                            caseHospitalizationRatios.get(ageGroup) * probabilityTherapeuticsFailDeath;
 
                     if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() < hospitalizationFatalityRatio) {
                         // Make a plan for a person to die

@@ -6,6 +6,7 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.RandomId;
 import gcm.core.epi.plugin.infection.DiseaseCourseData;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
+import gcm.core.epi.plugin.therapeutic.TherapeuticPlugin;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
@@ -65,8 +66,14 @@ public class InfectedCompartment extends DiseaseCompartment {
         final double probabilityVaccineFails = vaccinePlugin
                 .map(plugin -> 1.0 - plugin.getVEP(environment, personId, variantId))
                 .orElse(1.0);
-        final boolean willBeSymptomatic = environment.getRandomGeneratorFromId(RandomId.INFECTED_COMPARTMENT).nextDouble() <=
-                fractionSymptomatic.getWeight(ageGroup) * probabilityImmunityFails * probabilityVaccineFails;
+        // Therapeutic effect
+        Optional<TherapeuticPlugin> therapeuticPlugin = environment.getGlobalPropertyValue(GlobalProperty.THERAPEUTIC_PLUGIN);
+        final double probabilityTherapeuticFails = therapeuticPlugin
+                .map(plugin -> 1.0 - plugin.getTEP(environment, personId, variantId))
+                .orElse(1.0);
+        final boolean willBeSymptomatic = environment.getRandomGeneratorFromId(
+                RandomId.INFECTED_COMPARTMENT).nextDouble() <= fractionSymptomatic.getWeight(ageGroup) *
+                probabilityImmunityFails * probabilityVaccineFails * probabilityTherapeuticFails;
         if (willBeSymptomatic) {
             environment.setPersonPropertyValue(personId, PersonProperty.WILL_BE_SYMPTOMATIC, true);
             environment.addPlan(new SymptomOnsetPlan(personId),

@@ -3,6 +3,7 @@ package gcm.core.epi.components;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.behavior.BehaviorPlugin;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
+import gcm.core.epi.plugin.therapeutic.TherapeuticPlugin;
 import gcm.core.epi.plugin.transmission.TransmissionPlugin;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
@@ -443,9 +444,6 @@ public class ContactManager extends AbstractComponent {
 
                     if (contactCompartment == Compartment.SUSCEPTIBLE && !isDead) {
 
-                        // TODO: Re-incorporate antiviral plugin(s)
-                        double probabilityAntiviralsFail = 1.0;
-
                         // What is their transmission probability from prior immunity?
                         int sourceStrainIndex = environment.getPersonPropertyValue(sourcePersonId,
                                 PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
@@ -460,6 +458,13 @@ public class ContactManager extends AbstractComponent {
                                         sourcePersonId, targetPersonId.get())
                         ).orElse(1.0);
 
+                        // Therapeutic effect via plugin
+                        Optional<TherapeuticPlugin> therapeuticPlugin =
+                                environment.getGlobalPropertyValue(GlobalProperty.THERAPEUTIC_PLUGIN);
+                        double probabilityTherapeuticFails = therapeuticPlugin.map(
+                                plugin -> plugin.getProbabilityTherapeuticFailsToPreventTransmission(environment,
+                                        sourcePersonId, targetPersonId.get())
+                        ).orElse(1.0);
 
                         // Behavior effect via plugin
                         Optional<BehaviorPlugin> behaviorPlugin =
@@ -478,8 +483,9 @@ public class ContactManager extends AbstractComponent {
 
                         // Randomly draw to determine if vaccine and/or antivirals prevent the transmission
                         if (environment.getRandomGeneratorFromId(RandomId.CONTACT_MANAGER).nextDouble() <=
-                                probabilityVaccineFails * probabilityAntiviralsFail * infectionProbabilityFromBehavior *
-                                        infectionProbabilityFromImmunity * infectionProbabilityFromTransmissionPlugin) {
+                                infectionProbabilityFromImmunity *
+                                        probabilityVaccineFails * probabilityTherapeuticFails *
+                                        infectionProbabilityFromBehavior * infectionProbabilityFromTransmissionPlugin) {
                             infectPerson(environment, targetPersonId.get(), sourceStrainIndex);
                             // Flag that the infection occurred
                             infectionDataBuilder.transmissionOccurred(true);

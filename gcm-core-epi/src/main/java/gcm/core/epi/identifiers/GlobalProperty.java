@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.plugin.behavior.BehaviorPlugin;
 import gcm.core.epi.plugin.infection.ExponentialPeriodInfectionPlugin;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
+import gcm.core.epi.plugin.therapeutic.TherapeuticPlugin;
 import gcm.core.epi.plugin.transmission.TransmissionPlugin;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
@@ -18,6 +19,7 @@ import gcm.core.epi.variants.ImmutableWaningImmunityFunction;
 import gcm.core.epi.variants.VariantsDescription;
 import gcm.core.epi.variants.WaningImmunityFunction;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
+import plugins.globals.support.GlobalPropertyId;
 import plugins.regions.support.RegionId;
 import plugins.regions.support.RegionPropertyId;
 import util.geolocator.GeoLocator;
@@ -167,6 +169,11 @@ public enum GlobalProperty implements DefinedGlobalProperty {
 
     VACCINE_PLUGIN(TypedPropertyDefinition.builder()
             .typeReference(new TypeReference<Optional<VaccinePlugin>>() {
+            })
+            .defaultValue(Optional.empty()).build(), false),
+
+    THERAPEUTIC_PLUGIN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Optional<TherapeuticPlugin>>() {
             })
             .defaultValue(Optional.empty()).build(), false),
 
