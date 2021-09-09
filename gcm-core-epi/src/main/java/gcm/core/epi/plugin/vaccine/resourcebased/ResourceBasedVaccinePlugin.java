@@ -15,12 +15,12 @@ import gcm.core.epi.trigger.ImmutableAbsoluteTimeTrigger;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.util.property.*;
 import gcm.core.epi.variants.VariantId;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.partitions.support.LabelSet;
 import plugins.partitions.support.Partition;
@@ -110,6 +110,11 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 //        double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
         double vEP = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P);
         return vEP * getEfficacyFunctionValue(environment, personId);
+    }
+
+    @Override
+    public double getVEH(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
     }
 
     @Override

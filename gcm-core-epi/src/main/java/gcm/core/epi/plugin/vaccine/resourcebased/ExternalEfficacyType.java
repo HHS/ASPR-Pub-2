@@ -7,6 +7,8 @@ public enum ExternalEfficacyType {
     VE_I,
     // Overall against symptomatic infection
     VE_SP,
-    // Overall against hospitalization and death
+    // Overall against hospitalization
+    VE_SPH,
+    // Overall against death
     VE_SPD
 }

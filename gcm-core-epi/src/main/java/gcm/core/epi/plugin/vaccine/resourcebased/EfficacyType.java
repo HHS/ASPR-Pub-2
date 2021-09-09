@@ -7,6 +7,8 @@ public enum EfficacyType {
     VE_I,
     // Against symptoms conditional on infection
     VE_P,
-    // Against hospitalization and death conditional on symptomatic infection
+    // Against hospitalization conditional on symptomatic infection
+    VE_H,
+    // Against death conditional on symptomatic infection and requiring hospitalization
     VE_D
 }

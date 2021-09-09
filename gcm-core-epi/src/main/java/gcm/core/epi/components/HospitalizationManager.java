@@ -11,7 +11,6 @@ import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.core.epi.variants.VariantDefinition;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -19,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.people.support.PersonId;
 import plugins.personproperties.support.PersonPropertyId;
 import plugins.regions.support.RegionId;
@@ -143,14 +143,14 @@ public class HospitalizationManager extends AbstractComponent {
                 VariantDefinition variantDefinition = variantsDescription.getVariantDefinition(strainIndex);
                 double relativeSeverityFromStrain = variantDefinition.relativeSeverity();
 
-                // Reduced risk of severe disease among vaccine breakthrough cases
+                // Reduced risk of hospitalization among vaccine breakthrough cases
                 Optional<VaccinePlugin> vaccinePlugin = environment.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
                 VariantId variantId = variantsDescription.variantIdList().get(strainIndex);
-                final double relativeVaccineProtection = vaccinePlugin
-                        .map(plugin -> plugin.getVED(environment, personId, variantId))
-                        .orElse(0.0);
+                final double probabilityVaccineFailsHospitalization = vaccinePlugin
+                        .map(plugin -> 1.0 - plugin.getVEH(environment, personId, variantId))
+                        .orElse(1.0);
 
-                // Reduced risk of hospitalization
+                // Reduced risk of hospitalization from therapeutics
                 Optional<TherapeuticPlugin> therapeuticPlugin = environment.getGlobalPropertyValue(
                         GlobalProperty.THERAPEUTIC_PLUGIN);
                 final double probabilityTherapeuticsFailHospitalization = therapeuticPlugin
@@ -161,7 +161,7 @@ public class HospitalizationManager extends AbstractComponent {
                         (fractionHighRiskForAgeGroup * highRiskMultiplierForAgeGroup +
                                 (1.0 - fractionHighRiskForAgeGroup)) *
                         (isHighRisk ? highRiskMultiplierForAgeGroup : 1.0) *
-                        (1.0 - relativeVaccineProtection) * probabilityTherapeuticsFailHospitalization;
+                        probabilityVaccineFailsHospitalization * probabilityTherapeuticsFailHospitalization;
 
                 if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() <=
                         adjustedCaseHospitalizationRatio) {
@@ -191,13 +191,18 @@ public class HospitalizationManager extends AbstractComponent {
                     Map<AgeGroup, Double> caseFatalityRatios = environment.getGlobalPropertyValue(
                             GlobalProperty.CASE_FATALITY_RATIO);
 
+                    final double probabilityVaccineFailsDeath = vaccinePlugin
+                            .map(plugin -> 1.0 - plugin.getVED(environment, personId, variantId))
+                            .orElse(1.0);
+
                     final double probabilityTherapeuticsFailDeath = therapeuticPlugin
                             .map(plugin -> 1.0 - plugin.getTED(environment, personId, variantId))
                             .orElse(1.0);
 
                     // Age-group specific values adjusted for vaccine and therapeutic effect
                     double hospitalizationFatalityRatio = caseFatalityRatios.get(ageGroup) /
-                            caseHospitalizationRatios.get(ageGroup) * probabilityTherapeuticsFailDeath;
+                            caseHospitalizationRatios.get(ageGroup) * probabilityVaccineFailsDeath *
+                            probabilityTherapeuticsFailDeath;
 
                     if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() < hospitalizationFatalityRatio) {
                         // Make a plan for a person to die

@@ -56,9 +56,12 @@ public abstract class VaccineDefinition {
         efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_SP,
                 // Assume VE_P = 0 implicitly if not specified
                 efficacyMapWithDefaults.get(ExternalEfficacyType.VE_S));
+        efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_SPH,
+                // Assume VE_H = 0 implicitly if not specified
+                efficacyMapWithDefaults.get(ExternalEfficacyType.VE_SP));
         efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_SPD,
                 // Assume VE_D = 0 implicitly if not specified
-                efficacyMapWithDefaults.get(ExternalEfficacyType.VE_SP));
+                efficacyMapWithDefaults.get(ExternalEfficacyType.VE_SPH));
         return efficacyMapWithDefaults;
     }
 
@@ -81,9 +84,13 @@ public abstract class VaccineDefinition {
                     efficacy().get(ExternalEfficacyType.VE_S)) {
                 throw new RuntimeException("VE_P implied by VE_SP and VE_S is impossible.");
             }
-            if (efficacy().get(ExternalEfficacyType.VE_SPD) <
+            if (efficacy().get(ExternalEfficacyType.VE_SPH) <
                     efficacy().get(ExternalEfficacyType.VE_SP)) {
-                throw new RuntimeException("VE_D implied by VE_SPD and VE_SP is impossible.");
+                throw new RuntimeException("VE_H implied by VE_SPH and VE_SP is impossible.");
+            }
+            if (efficacy().get(ExternalEfficacyType.VE_SPD) <
+                    efficacy().get(ExternalEfficacyType.VE_SPH)) {
+                throw new RuntimeException("VE_D implied by VE_SPD and VE_SPH is impossible.");
             }
             return this;
         }
@@ -92,7 +99,8 @@ public abstract class VaccineDefinition {
     /*
         Derived efficacy of first dose by taking the base efficacy and multiplying by the appropriate relative efficacy
      */
-    @Value.Derived Map<ExternalEfficacyType, Double> firstDoseEfficacy() {
+    @Value.Derived
+    Map<ExternalEfficacyType, Double> firstDoseEfficacy() {
         return efficacy().entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
@@ -113,10 +121,10 @@ public abstract class VaccineDefinition {
                     new EnumMap<>(ExternalEfficacyType.class));
             variantEfficacy.put(variantId,
                     efficacy().entrySet().stream()
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            entry -> relativeEfficacy.getOrDefault(entry.getKey(), 1.0) * entry.getValue()
-                                )));
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    entry -> relativeEfficacy.getOrDefault(entry.getKey(), 1.0) * entry.getValue()
+                            )));
         }
         return variantEfficacy;
     }
@@ -160,10 +168,18 @@ public abstract class VaccineDefinition {
                 } else {
                     return 1.0;
                 }
+            case VE_H:
+                double VE_SPH = getVaccineEfficacy(ExternalEfficacyType.VE_SPH, timeSinceLastDose, variantId, doses);
+                if (VE_SPH < 1) {
+                    return 1.0 - ((1.0 - VE_SPH) / (1.0 - getVaccineEfficacy(ExternalEfficacyType.VE_SP,
+                            timeSinceLastDose, variantId, doses)));
+                } else {
+                    return 1.0;
+                }
             case VE_D:
                 double VE_SPD = getVaccineEfficacy(ExternalEfficacyType.VE_SPD, timeSinceLastDose, variantId, doses);
                 if (VE_SPD < 1) {
-                    return 1.0 - ((1.0 - VE_SPD) / (1.0 - getVaccineEfficacy(ExternalEfficacyType.VE_SP,
+                    return 1.0 - ((1.0 - VE_SPD) / (1.0 - getVaccineEfficacy(ExternalEfficacyType.VE_SPH,
                             timeSinceLastDose, variantId, doses)));
                 } else {
                     return 1.0;

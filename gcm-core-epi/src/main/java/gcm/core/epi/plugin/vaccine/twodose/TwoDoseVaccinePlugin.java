@@ -11,12 +11,12 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.partitions.support.Equality;
 import plugins.partitions.support.Partition;
@@ -76,6 +76,11 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P_2) :
                 isVaccineDose1Protected(environment, personId) ?
                         environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P_1) : 0.0;
+    }
+
+    @Override
+    public double getVEH(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
     }
 
     @Override

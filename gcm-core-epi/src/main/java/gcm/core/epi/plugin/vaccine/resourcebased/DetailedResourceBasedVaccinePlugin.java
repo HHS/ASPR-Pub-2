@@ -18,19 +18,22 @@ import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import nucleus.ReportContext;
-import org.slf4j.LoggerFactory;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.util.Pair;
+import org.slf4j.LoggerFactory;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.globals.datacontainers.GlobalDataView;
 import plugins.globals.support.GlobalPropertyId;
-import plugins.partitions.support.*;
+import plugins.partitions.support.Equality;
+import plugins.partitions.support.LabelSet;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
 import plugins.people.support.PersonId;
 import plugins.personproperties.datacontainers.PersonPropertyDataView;
 import plugins.personproperties.support.PersonPropertyLabeler;
@@ -84,6 +87,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
     @Override
     public double getVEP(Environment environment, PersonId personId, VariantId variantId) {
         return getEfficacyFunctionValue(environment, personId, variantId, EfficacyType.VE_P);
+    }
+
+    @Override
+    public double getVEH(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
     }
 
     @Override
@@ -350,11 +358,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         private final Map<VaccineId, VaccineDefinition> vaccineDefinitionMap = new HashMap<>();
         // Map from Vaccine ID to index in the VACCINE_DEFINITION global property
         private final Map<VaccineId, Integer> vaccineIndexMap = new HashMap<>();
+        // Flag for seeing if we are already observing region arrivals
+        private final Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
         // Map giving regions in a given FipsCode - note all VaccineAdministrators must share a scope
         private Map<FipsCode, Set<RegionId>> fipsCodeRegionMap;
         private FipsScope administrationScope;
-        // Flag for seeing if we are already observing region arrivals
-        private final Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
         // Retain
         private FipsCodeValue<AgeWeights> vaccinationMaximumCoverage;
 
@@ -481,7 +489,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 Map<Double, Map<VaccineId, FipsCodeDouble>> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
                 for (Map.Entry<Double, Map<VaccineId, FipsCodeDouble>> entry : vaccineDeliveries.entrySet()) {
-                        environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
+                    environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
 
                 // Save coverage to handle updating on trigger logic
@@ -650,10 +658,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 (1.0 - newMaximumCoverage) / newMaximumCoverage *
                                         currentMaximumCoverage / (1.0 - currentMaximumCoverage) :
                                 0.0;
-                        if (refusalRatio > 1.0)  {
+                        if (refusalRatio > 1.0) {
                             LoggerFactory.getLogger(DetailedResourceBasedVaccinePlugin.class).warn(
                                     "Vaccination maximum coverage decreased by override, which may not be possible to implement. RegionId: " +
-                                    regionId.toString());
+                                            regionId.toString());
                         } else if (refusalRatio < 1.0) {
                             List<PersonId> peopleWhoHaveRefused = environment.getPartitionPeople(COVERAGE_PARTITION_KEY,
                                     LabelSet.builder()
@@ -945,7 +953,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         );
                         // Now select the person
                         boolean refuses = true;
-                        while(refuses) {
+                        while (refuses) {
                             personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
                                     .setLabelSet(fipsCodeFirstDoseLabelSet)
                                     .setLabelSetWeightingFunction((context, labelSet) -> {

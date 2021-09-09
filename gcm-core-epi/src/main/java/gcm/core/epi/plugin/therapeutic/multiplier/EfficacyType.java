@@ -9,6 +9,6 @@ public enum EfficacyType {
     TE_P,
     // Against hospitalization conditional on symptomatic infection
     TE_H,
-    // Against death conditional on symptomatic infection and requiried hospitalization
+    // Against death conditional on symptomatic infection and requiring hospitalization
     TE_D
 }

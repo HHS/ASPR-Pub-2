@@ -33,12 +33,17 @@ public interface VaccinePlugin extends Plugin {
     double getVEI(Environment environment, PersonId personId, VariantId variantId);
 
     /*
-        Get the reduction in probability that a vaccinated infected person will have a severe outcome
+        Get the reduction in probability that a vaccinated infected person will have symptoms
      */
     double getVEP(Environment environment, PersonId personId, VariantId variantId);
 
     /*
-        Get the reduction in probability of hospitalization / death for a vaccinated infected person
+        Get the reduction in probability of hospitalization vaccinated infected and symptomatic person
+     */
+    double getVEH(Environment environment, PersonId personId, VariantId variantId);
+
+    /*
+        Get the reduction in probability of death for a vaccinated infected person who requires hospitalization
      */
     double getVED(Environment environment, PersonId personId, VariantId variantId);
 

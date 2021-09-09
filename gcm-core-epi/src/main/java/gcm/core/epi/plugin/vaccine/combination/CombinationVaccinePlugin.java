@@ -13,12 +13,12 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.variants.VariantId;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.globals.support.GlobalPropertyId;
 import plugins.partitions.support.Equality;
@@ -137,6 +137,11 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
             i++;
         }
         return 1 - vaccineFailureProbability;
+    }
+
+    @Override
+    public double getVEH(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
     }
 
     @Override
