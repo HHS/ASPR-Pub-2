@@ -481,7 +481,7 @@ public class ContactManager extends AbstractComponent {
                                 .map(plugin -> plugin.getInfectionProbability(environment, targetPersonId.get()))
                                 .orElse(1.0);
 
-                        // Randomly draw to determine if vaccine and/or antivirals prevent the transmission
+                        // Randomly draw to determine if transmission occurs
                         if (environment.getRandomGeneratorFromId(RandomId.CONTACT_MANAGER).nextDouble() <=
                                 infectionProbabilityFromImmunity *
                                         probabilityVaccineFails * probabilityTherapeuticFails *
