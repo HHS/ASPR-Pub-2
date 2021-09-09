@@ -29,7 +29,7 @@ public enum CustomReport implements LoadableReport, ReportId {
             () -> new IncidenceReport(reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel())::init),
 
     INCIDENCE_REPORT_BY_AGE((reportWrapperItem, pluginList) ->
-        () -> new IncidenceReportByAge(reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel())::init),
+            () -> new IncidenceReportByAge(reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel())::init),
 
     INFECTION_REPORT((reportWrapperItem, pluginList) ->
             () -> new InfectionReport(reportWrapperItem.showTransmissionAttempts())::init),
@@ -65,7 +65,8 @@ public enum CustomReport implements LoadableReport, ReportId {
     ),
 
     // Trigger report has no body and thus nothing to init
-    TRIGGER_REPORT((reportWrapperItem, pluginList) -> () -> (ReportContext reportContext) -> {}),
+    TRIGGER_REPORT((reportWrapperItem, pluginList) -> () -> (ReportContext reportContext) -> {
+    }),
 
     DETAILED_RESOURCE_VACCINATION_REPORT((reportWrapperItem, pluginList) ->
             () -> new DetailedResourceVaccinationReport(reportWrapperItem.period(),

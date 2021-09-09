@@ -49,6 +49,8 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
      */
     private final Map<String, Map<CompartmentId, Map<CompartmentId, Counter>>> regionMap = new LinkedHashMap<>();
     private final ReportHeader reportHeader;
+    private CompartmentLocationDataView compartmentLocationDataView;
+    private RegionLocationDataView regionLocationDataView;
 
     public CompartmentRegionalTransferReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
         super(reportPeriod, fipsScope);
@@ -109,9 +111,6 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
         final Counter counter = regionMap.get(getFipsString(regionId)).get(sourceCompartmentId).get(destinationCompartmentId);
         counter.count++;
     }
-
-    private CompartmentLocationDataView compartmentLocationDataView;
-    private RegionLocationDataView regionLocationDataView;
 
     @Override
     public void init(final ReportContext context) {

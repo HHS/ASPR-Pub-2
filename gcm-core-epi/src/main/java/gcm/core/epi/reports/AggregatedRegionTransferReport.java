@@ -55,6 +55,8 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
      * The derived header for this report
      */
     private ReportHeader reportHeader;
+    private CompartmentLocationDataView compartmentLocationDataView;
+    private RegionLocationDataView regionLocationDataView;
 
     public AggregatedRegionTransferReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
         super(reportPeriod, fipsScope);
@@ -109,7 +111,6 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
         increment(compartmentId, regionId, regionId);
     }
 
-
     private void handlePersonRegionChangeObservationEvent(ReportContext context, PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
         PersonId personId = personRegionChangeObservationEvent.getPersonId();
         RegionId previousRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
@@ -125,9 +126,6 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
         final Counter counter = compartmentMap.get(compartmentId).get(getFipsString(sourceRegionId)).get(getFipsString(destinationRegionId));
         counter.count++;
     }
-
-    private CompartmentLocationDataView compartmentLocationDataView;
-    private RegionLocationDataView regionLocationDataView;
 
     @Override
     public void init(final ReportContext reportContext) {

@@ -23,13 +23,13 @@ import gcm.core.epi.trigger.TriggerDescription;
 import gcm.core.epi.util.loading.*;
 import gcm.core.epi.util.logging.LogItemHandler;
 import gcm.core.epi.util.property.DefinedRegionProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import plugins.gcm.experiment.Experiment;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.gcm.experiment.ExperimentExecutor;
 import plugins.gcm.experiment.output.NIOReportItemHandler;
 import plugins.regions.support.RegionId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;

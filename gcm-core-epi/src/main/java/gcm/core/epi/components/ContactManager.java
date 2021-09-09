@@ -16,13 +16,13 @@ import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.core.epi.variants.VariantDefinition;
 import gcm.core.epi.variants.VariantsDescription;
 import gcm.core.epi.variants.WaningImmunityFunction;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.groups.support.GroupId;
 import plugins.groups.support.GroupSampler;
 import plugins.groups.support.GroupWeightingFunction;
@@ -123,6 +123,26 @@ public class ContactManager extends AbstractComponent {
             default:
                 return contactGroupType;
         }
+    }
+
+    public static void infectPerson(Environment environment, PersonId personId, int strainIndex) {
+        environment.setPersonPropertyValue(personId, PersonProperty.HAD_INFECTIOUS_CONTACT, true);
+        // Shift history data
+        int priorStrainIndex;
+        float priorRecoveryTime;
+        // Strain 2 => 3
+        priorStrainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2);
+        priorRecoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_3, priorStrainIndex);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_3, priorRecoveryTime);
+        // Strain 1 => 2
+        priorStrainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+        priorRecoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2, priorStrainIndex);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2, priorRecoveryTime);
+        // Set current infection strain
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, strainIndex);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1, -1.0f);
     }
 
     @Override
@@ -530,26 +550,6 @@ public class ContactManager extends AbstractComponent {
                 waningImmunityFunction.getResidualImmunity(environment.getTime() - recoveryTime));
 
         return infectionProbability;
-    }
-
-    public static void infectPerson(Environment environment, PersonId personId, int strainIndex) {
-        environment.setPersonPropertyValue(personId, PersonProperty.HAD_INFECTIOUS_CONTACT, true);
-        // Shift history data
-        int priorStrainIndex;
-        float priorRecoveryTime;
-        // Strain 2 => 3
-        priorStrainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2);
-        priorRecoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
-        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_3, priorStrainIndex);
-        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_3, priorRecoveryTime);
-        // Strain 1 => 2
-        priorStrainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
-        priorRecoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1);
-        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2, priorStrainIndex);
-        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2, priorRecoveryTime);
-        // Set current infection strain
-        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, strainIndex);
-        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1, -1.0f);
     }
 
     private Optional<ContactGroupType> getContactGroupType(Environment environment, PersonId sourcePersonId) {

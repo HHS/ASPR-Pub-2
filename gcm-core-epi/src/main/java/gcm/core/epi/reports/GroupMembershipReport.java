@@ -12,6 +12,7 @@ import java.util.List;
 
 public class GroupMembershipReport {
 
+    PersonGroupDataView personGroupDataView;
     private ReportHeader reportHeader;
 
     private ReportHeader getReportHeader() {
@@ -25,8 +26,6 @@ public class GroupMembershipReport {
         }
         return reportHeader;
     }
-
-    PersonGroupDataView personGroupDataView;
 
     public void init(ReportContext reportContext) {
         personGroupDataView = reportContext.getDataView(PersonGroupDataView.class).get();

@@ -31,7 +31,11 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
 
     private final Map<String, Map<AgeGroup, Map<String, Map<VariantId, Map<CounterType, Counter>>>>> counterMap = new LinkedHashMap<>();
     private final ReportHeader reportHeader;
-
+    ReportContext reportContext;
+    GlobalDataView globalDataView;
+    RegionDataView regionDataView;
+    RegionLocationDataView regionLocationDataView;
+    PersonPropertyDataView personPropertyDataView;
     public IncidenceReportByAge(ReportPeriod reportPeriod, FipsScope fipsScope) {
         super(reportPeriod, fipsScope);
         ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
@@ -47,17 +51,11 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
     }
 
     private AgeGroup getPersonAgeGroup(PersonId personId) {
-        PopulationDescription populationDescription =  globalDataView.getGlobalPropertyValue(
+        PopulationDescription populationDescription = globalDataView.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
         Integer ageGroupIndex = personPropertyDataView.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
         return populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
     }
-
-    ReportContext reportContext;
-    GlobalDataView globalDataView;
-    RegionDataView regionDataView;
-    RegionLocationDataView regionLocationDataView;
-    PersonPropertyDataView personPropertyDataView;
 
     @Override
     public void init(ReportContext reportContext) {
@@ -143,7 +141,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
             Map<AgeGroup, Map<String, Map<VariantId, Map<CounterType, Counter>>>> ageGroupCounterMap = counterMap.get(regionId);
             for (AgeGroup ageGroup : ageGroupCounterMap.keySet()) {
                 Map<String, Map<VariantId, Map<CounterType, Counter>>> vaccineStatusCounterMap = ageGroupCounterMap.get(ageGroup);
-                for (String vaccineStatus: vaccineStatusCounterMap.keySet()) {
+                for (String vaccineStatus : vaccineStatusCounterMap.keySet()) {
                     Map<VariantId, Map<CounterType, Counter>> variantCounterMap = vaccineStatusCounterMap.get(vaccineStatus);
                     for (VariantId variantId : variantCounterMap.keySet()) {
                         Map<CounterType, Counter> counters = variantCounterMap.get(variantId);

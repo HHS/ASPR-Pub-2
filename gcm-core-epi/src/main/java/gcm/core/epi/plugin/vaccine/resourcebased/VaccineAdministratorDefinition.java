@@ -11,11 +11,6 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableVaccineAdministratorDefinition.class)
 public abstract class VaccineAdministratorDefinition {
 
-    public enum UptakeNormalization {
-        POPULATION,
-        DOSES
-    }
-
     public abstract VaccineAdministratorId id();
 
     @Value.Default
@@ -39,7 +34,9 @@ public abstract class VaccineAdministratorDefinition {
     }
 
     @Value.Default
-    public AgeWeights vaccineInfectedUptakeWeights() { return ImmutableAgeWeights.builder().defaultValue(1.0).build(); }
+    public AgeWeights vaccineInfectedUptakeWeights() {
+        return ImmutableAgeWeights.builder().defaultValue(1.0).build();
+    }
 
     @Value.Default
     public Boolean reserveSecondDoses() {
@@ -52,9 +49,18 @@ public abstract class VaccineAdministratorDefinition {
     }
 
     @Value.Default
-    public Boolean forceSecondDoseFraction() { return false; }
+    public Boolean forceSecondDoseFraction() {
+        return false;
+    }
 
     @Value.Default
-    public Double secondDoseFraction() { return fractionReturnForSecondDose() / (1.0 + fractionReturnForSecondDose()); }
+    public Double secondDoseFraction() {
+        return fractionReturnForSecondDose() / (1.0 + fractionReturnForSecondDose());
+    }
+
+    public enum UptakeNormalization {
+        POPULATION,
+        DOSES
+    }
 
 }

@@ -18,7 +18,8 @@ public class InfectionReport {
 
     private final ReportHeader reportHeader;
     private final boolean showTransmissionAttempts;
-
+    GlobalDataView globalDataView;
+    PersonPropertyDataView personPropertyDataView;
     public InfectionReport(boolean showTransmissionAttempts) {
         this.showTransmissionAttempts = showTransmissionAttempts;
         ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder()
@@ -33,9 +34,6 @@ public class InfectionReport {
         }
         reportHeader = reportHeaderBuilder.build();
     }
-
-    GlobalDataView globalDataView;
-    PersonPropertyDataView personPropertyDataView;
 
     public void init(ReportContext reportContext) {
         reportContext.subscribe(GlobalPropertyChangeObservationEvent.getEventLabel(reportContext,

@@ -61,6 +61,9 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
      */
     private final Map<String, Map<CompartmentId, Map<PersonPropertyId, Map<Object, Counter>>>> tupleMap = new LinkedHashMap<>();
     private final ReportHeader reportHeader;
+    private PersonPropertyDataView personPropertyDataView;
+    private CompartmentLocationDataView compartmentLocationDataView;
+    private RegionLocationDataView regionLocationDataView;
 
     public PersonRegionalPropertyReport(ReportPeriod reportPeriod, FipsScope fipsScope, PersonPropertyId... personPropertyIds) {
         super(reportPeriod, fipsScope);
@@ -202,11 +205,6 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
     private void increment(final RegionId regionId, final CompartmentId compartmentId, final PersonPropertyId personPropertyId, final Object personPropertyValue) {
         getCounter(regionId, compartmentId, personPropertyId, personPropertyValue).count++;
     }
-
-    private PersonPropertyDataView personPropertyDataView;
-    private CompartmentLocationDataView compartmentLocationDataView;
-    private RegionLocationDataView regionLocationDataView;
-
 
     @Override
     public void init(final ReportContext reportContext) {

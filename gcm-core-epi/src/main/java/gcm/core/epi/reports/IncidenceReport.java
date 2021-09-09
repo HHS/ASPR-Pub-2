@@ -18,12 +18,17 @@ import plugins.reports.support.ReportItem;
 import plugins.reports.support.ReportPeriod;
 import plugins.resources.events.observation.PersonResourceChangeObservationEvent;
 
-import java.util.*;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class IncidenceReport extends RegionAggregationPeriodicReport {
 
     private final Map<String, Map<CounterType, Counter>> regionCounterMap = new LinkedHashMap<>();
     private final ReportHeader reportHeader;
+    RegionDataView regionDataView;
+    RegionLocationDataView regionLocationDataView;
+    PersonPropertyDataView personPropertyDataView;
 
     public IncidenceReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
         super(reportPeriod, fipsScope);
@@ -108,10 +113,6 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
         }
 
     }
-
-    RegionDataView regionDataView;
-    RegionLocationDataView regionLocationDataView;
-    PersonPropertyDataView personPropertyDataView;
 
     @Override
     public void init(ReportContext reportContext) {

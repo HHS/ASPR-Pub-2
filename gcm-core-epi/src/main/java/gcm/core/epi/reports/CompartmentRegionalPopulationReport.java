@@ -51,6 +51,8 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
      * The header for the report
      */
     private ReportHeader reportHeader;
+    private CompartmentLocationDataView compartmentLocationDataView;
+    private RegionLocationDataView regionLocationDataView;
 
     public CompartmentRegionalPopulationReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
         super(reportPeriod, fipsScope);
@@ -149,15 +151,12 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
         counter.count++;
     }
 
-    private CompartmentLocationDataView compartmentLocationDataView;
-    private RegionLocationDataView regionLocationDataView;
-
     @Override
     public void init(ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribe(PersonCreationObservationEvent.class,this::handlePersonCreationObservationEvent);
-        reportContext.subscribe(PersonImminentRemovalObservationEvent.class,this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribe(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
         reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
         reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 

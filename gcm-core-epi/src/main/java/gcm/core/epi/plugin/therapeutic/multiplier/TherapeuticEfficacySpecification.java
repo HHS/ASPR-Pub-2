@@ -58,7 +58,7 @@ public abstract class TherapeuticEfficacySpecification {
     boolean efficacyIsZero() {
         // Only if every efficacy value is zero
         return efficacies().values().stream().allMatch(
-                        entry -> entry.values().stream().allMatch(ve -> ve == 0));
+                entry -> entry.values().stream().allMatch(ve -> ve == 0));
     }
 
     @Value.Derived
@@ -96,8 +96,7 @@ public abstract class TherapeuticEfficacySpecification {
                 if (TESP < 1.0) {
                     return 1.0 - (1.0 - efficaciesOverTime().get(ExternalEfficacyType.TE_S).value(time)) /
                             (1.0 - TESP);
-                }
-                else {
+                } else {
                     return 1.0;
                 }
             case TE_H:
@@ -105,8 +104,7 @@ public abstract class TherapeuticEfficacySpecification {
                 if (TESPH < 1.0) {
                     return 1.0 - (1.0 - efficaciesOverTime().get(ExternalEfficacyType.TE_SP).value(time)) /
                             (1.0 - TESPH);
-                }
-                else {
+                } else {
                     return 1.0;
                 }
             case TE_D:
@@ -114,8 +112,7 @@ public abstract class TherapeuticEfficacySpecification {
                 if (TESPD < 1.0) {
                     return 1.0 - (1.0 - efficaciesOverTime().get(ExternalEfficacyType.TE_SPH).value(time)) /
                             (1.0 - TESPD);
-                }
-                else {
+                } else {
                     return 1.0;
                 }
             default:

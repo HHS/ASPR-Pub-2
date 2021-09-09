@@ -22,6 +22,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
     private final Map<String, Map<AdministrationData,
             Map<DetailedResourceVaccinationData.DoseType, Counter>>> regionCounterMap = new LinkedHashMap<>();
     private final ReportHeader reportHeader;
+    private GlobalDataView globalDataView;
 
     public DetailedResourceVaccinationReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
         super(reportPeriod, fipsScope);
@@ -37,8 +38,6 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                 .build();
     }
 
-    private GlobalDataView globalDataView;
-
     @Override
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
@@ -51,7 +50,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
         RegionDataView regionDataView = reportContext.getDataView(RegionDataView.class).get();
 
         reportContext.subscribe(GlobalPropertyChangeObservationEvent.getEventLabel(reportContext,
-                DetailedResourceBasedVaccinePlugin.VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA),
+                        DetailedResourceBasedVaccinePlugin.VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA),
                 this::handleGlobalPropertyChangeObservationEvent);
 
         // Initialize regionCounterMap

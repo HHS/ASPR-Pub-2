@@ -382,7 +382,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                 Set<PersonId> additionalGlobalContacts = new HashSet<>();
                                 IntStream.range(1, numberOfAdditionalGlobalContactsToTrace)
                                         .forEach(x -> ContactManager.getGlobalContactFor(environment, personId,
-                                                ContactTracingRandomId.ID)
+                                                        ContactTracingRandomId.ID)
                                                 .ifPresent(additionalGlobalContacts::add));
                                 peopleInGroup.addAll(additionalGlobalContacts);
                             }

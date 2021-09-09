@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.core.epi.plugin.behavior.BehaviorPluginType;
 import gcm.core.epi.plugin.infection.InfectionPluginType;
 import gcm.core.epi.plugin.seeding.SeedingPluginType;
-import gcm.core.epi.plugin.therapeutic.TherapeuticPlugin;
 import gcm.core.epi.plugin.therapeutic.TherapeuticPluginType;
 import gcm.core.epi.plugin.transmission.TransmissionPluginType;
 import gcm.core.epi.plugin.vaccine.VaccinePluginType;

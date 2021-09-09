@@ -8,11 +8,11 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.globals.support.GlobalComponentId;
 import plugins.people.support.PersonId;
@@ -62,7 +62,7 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
 
         VARIANT_LATER_PREVALENCE(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<Map<VariantId, Double>>() {
-        }).defaultValue(new HashMap<>()).build()),
+                }).defaultValue(new HashMap<>()).build()),
 
         VARIANT_LATER_SEEDING_DAY(TypedPropertyDefinition.builder()
                 .type(Double.class).defaultValue(0.0).build());
@@ -103,7 +103,7 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
             // Only called to seed variants
 
             // Compute and validate weights
-            Map<VariantId, Double> variantSeedingPrevalence = ( (VariantSeedingPlan) plan).prevalence;
+            Map<VariantId, Double> variantSeedingPrevalence = ((VariantSeedingPlan) plan).prevalence;
             if (variantSeedingPrevalence.values().stream().anyMatch(x -> x < 0)) {
                 throw new RuntimeException("Negative initial prevalence");
             }

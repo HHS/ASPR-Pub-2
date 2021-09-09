@@ -3,7 +3,6 @@ package gcm.core.epi.identifiers;
 
 import gcm.core.epi.components.compartment.InfectedCompartment;
 import gcm.core.epi.components.compartment.SusceptibleCompartment;
-
 import nucleus.AgentContext;
 import plugins.compartments.support.CompartmentId;
 

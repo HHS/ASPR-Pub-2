@@ -14,12 +14,12 @@ import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.loading.HospitalDataFileRecord;
-import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import plugins.compartments.support.CompartmentId;
 import plugins.compartments.support.CompartmentLabeler;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.groups.support.BulkGroupMembershipData;
 import plugins.groups.support.GroupId;
 import plugins.partitions.support.LabelSet;
@@ -82,7 +82,7 @@ public class PopulationLoader extends AbstractComponent {
             if (groupIndex == groupTypes.size()) {
                 builder.addGroup(contactGroupType);
                 groupTypes.add(contactGroupType);
-            } else if (groupTypes.get(groupIndex) != contactGroupType ) {
+            } else if (groupTypes.get(groupIndex) != contactGroupType) {
                 throw new RuntimeException("Group ID has the incorrect type");
             }
             builder.addPersonToGroup(personIndex, groupIndex);

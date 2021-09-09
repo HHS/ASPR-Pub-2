@@ -48,7 +48,8 @@ public abstract class TypedPropertyDefinition {
         }
     }
 
-    abstract @Nullable Object defaultValue();
+    abstract @Nullable
+    Object defaultValue();
 
     @Value.Default
     TimeTrackingPolicy timeTrackingPolicy() {

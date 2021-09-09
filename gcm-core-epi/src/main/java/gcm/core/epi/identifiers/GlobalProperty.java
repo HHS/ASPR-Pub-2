@@ -19,7 +19,6 @@ import gcm.core.epi.variants.ImmutableWaningImmunityFunction;
 import gcm.core.epi.variants.VariantsDescription;
 import gcm.core.epi.variants.WaningImmunityFunction;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
-import plugins.globals.support.GlobalPropertyId;
 import plugins.regions.support.RegionId;
 import plugins.regions.support.RegionPropertyId;
 import util.geolocator.GeoLocator;

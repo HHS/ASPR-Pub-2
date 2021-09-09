@@ -1,9 +1,9 @@
 package gcm.core.epi.components.compartment;
 
 import gcm.core.epi.identifiers.Compartment;
-import plugins.gcm.agents.Plan;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.people.support.PersonId;
 
 abstract class DiseaseCompartment extends AbstractComponent {

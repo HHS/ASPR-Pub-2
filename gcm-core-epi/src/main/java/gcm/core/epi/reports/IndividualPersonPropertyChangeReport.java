@@ -10,8 +10,8 @@ import plugins.personproperties.support.PersonPropertyId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
 
-
 import java.util.Set;
+
 public final class IndividualPersonPropertyChangeReport {
 
     private final Set<PersonPropertyId> personPropertyIds;

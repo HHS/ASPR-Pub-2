@@ -75,7 +75,7 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
     private ResourceDataView resourceDataView;
 
     public PersonRegionalResourceReport(ReportPeriod reportPeriod, FipsScope fipsScope,
-                                        boolean reportPeopleWithoutResources, boolean reportZeroPopulations, ResourceId...resourceIds) {
+                                        boolean reportPeopleWithoutResources, boolean reportZeroPopulations, ResourceId... resourceIds) {
         super(reportPeriod, fipsScope);
         this.reportPeopleWithoutResources = reportPeopleWithoutResources;
         this.reportZeroPopulations = reportZeroPopulations;

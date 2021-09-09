@@ -1,9 +1,7 @@
 package gcm.core.epi.plugin.therapeutic.multiplier;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.plugin.therapeutic.TherapeuticPlugin;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.core.epi.util.property.ImmutableTypedPropertyDefinition;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import plugins.gcm.agents.Environment;

@@ -4,9 +4,9 @@ import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.trigger.*;
-import plugins.gcm.agents.Plan;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.gcm.agents.Plan;
 import plugins.regions.support.RegionId;
 
 import java.util.ArrayList;
