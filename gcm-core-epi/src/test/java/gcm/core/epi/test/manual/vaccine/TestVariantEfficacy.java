@@ -15,13 +15,13 @@ public class TestVariantEfficacy {
     public void testTime() {
         double initialDelay = 7.0;
         double peakTime = 14.0;
-        double secondDoseDelay = 20.1;
+        double secondDoseDelay = 21.0;
 
         double halflifeVES = 60.0;
         double halflifeVESP = 120.0;
         double VES = 0.9;
         double VESP = 0.95;
-        double VESPD = 0.98;
+        double VESPH = 0.98;
         double firstDoseRelativeEfficacy = 0.5;
 
         SimpleEfficacyFunction firstDoseEfficacyFunction = ImmutableSimpleEfficacyFunction.builder()
@@ -50,12 +50,12 @@ public class TestVariantEfficacy {
         VaccineDefinition vaccineDefinition = ImmutableVaccineDefinition.builder()
                 .id(VaccineId.of("Vaccine One"))
                 .type(VaccineDefinition.DoseType.TWO_DOSE)
-                .secondDoseDelay(21.0)
+                .secondDoseDelay(secondDoseDelay)
                 .firstDoseEfficacyFunction(firstDoseEfficacyFunction)
                 .secondDoseEfficacyFunction(secondDoseEfficacyFunction)
                 .putEfficacy(ExternalEfficacyType.VE_S, VES)
                 .putEfficacy(ExternalEfficacyType.VE_SP, VESP)
-                .putEfficacy(ExternalEfficacyType.VE_SPD, VESPD)
+                .putEfficacy(ExternalEfficacyType.VE_SPH, VESPH)
                 .putFirstDoseRelativeEfficacy(ExternalEfficacyType.VE_S, firstDoseRelativeEfficacy)
                 .putVariantRelativeEfficacy(otherVariant, variantEfficacy)
                 .putVariantFirstDoseRelativeEfficacy(otherVariant, variantEfficacy)
@@ -87,8 +87,8 @@ public class TestVariantEfficacy {
         double wanedVEP = vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_P, peakTime + halflifeVESP, referenceVariant, 2);
         double wanedVESP = 1.0 - (1.0 - wanedVES) * (1.0 - wanedVEP);
         assertEquals(wanedVESP, VESP * 0.5);
-        double wanedVED = vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_D, peakTime + halflifeVESP, referenceVariant, 2);
-        assertEquals(1.0 - (1.0 - wanedVED) * (1.0 - wanedVESP), VESPD);
+        double wanedVED = vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_H, peakTime + halflifeVESP, referenceVariant, 2);
+        assertEquals(1.0 - (1.0 - wanedVED) * (1.0 - wanedVESP), VESPH);
 
         // One dose variant
         assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_S, 0.0, otherVariant, 1
@@ -99,7 +99,7 @@ public class TestVariantEfficacy {
         ), VES * firstDoseRelativeEfficacy * variantRelativeEfficacy * variantRelativeEfficacy * 0.5);
         assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_S, peakTime, otherVariant, 1
         ), VES * firstDoseRelativeEfficacy * variantRelativeEfficacy * variantRelativeEfficacy);
-        assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_S, 28.0, otherVariant, 1
+        assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_S, peakTime + 14.0, otherVariant, 1
         ), VES * firstDoseRelativeEfficacy * variantRelativeEfficacy * variantRelativeEfficacy);
 
         // Two dose variant
@@ -125,7 +125,7 @@ public class TestVariantEfficacy {
                 new EnumMap<>(ExternalEfficacyType.class);
         variantRelativeEfficacy.put(ExternalEfficacyType.VE_S, 0.8);
         variantRelativeEfficacy.put(ExternalEfficacyType.VE_SP, 0.9);
-        variantRelativeEfficacy.put(ExternalEfficacyType.VE_SPD, 1.0);
+        variantRelativeEfficacy.put(ExternalEfficacyType.VE_SPH, 1.0);
 
         VaccineDefinition vaccineDefinition = ImmutableVaccineDefinition.builder()
                 .id(VaccineId.of("Vaccine One"))
@@ -133,7 +133,7 @@ public class TestVariantEfficacy {
                 .secondDoseDelay(21.0)
                 .putEfficacy(ExternalEfficacyType.VE_S, 0.9)
                 .putEfficacy(ExternalEfficacyType.VE_SP, 0.95)
-                .putEfficacy(ExternalEfficacyType.VE_SPD, 0.98)
+                .putEfficacy(ExternalEfficacyType.VE_SPH, 0.98)
                 .putEfficacy(ExternalEfficacyType.VE_I, 0.2)
                 .putFirstDoseRelativeEfficacy(ExternalEfficacyType.VE_S, 0.5)
                 .putVariantRelativeEfficacy(otherVariant, variantRelativeEfficacy)
@@ -145,7 +145,7 @@ public class TestVariantEfficacy {
         ), 0.2);
         assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_P, 0.0, referenceVariant, 2
         ), 0.5, 1e-12);
-        assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_D, 0.0, referenceVariant, 2
+        assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_H, 0.0, referenceVariant, 2
         ), 0.6);
 
         assertEquals(vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_S, 0.0, otherVariant, 2
@@ -157,7 +157,7 @@ public class TestVariantEfficacy {
         )), 0.95 * 0.9);
         assertEquals(1.0 - (1.0 - vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_S, 0.0, otherVariant, 2
         )) * (1.0 - vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_P, 0.0, otherVariant, 2
-        )) * (1.0 - vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_D, 0.0, otherVariant, 2
+        )) * (1.0 - vaccineDefinition.getVaccineEfficacy(EfficacyType.VE_H, 0.0, otherVariant, 2
         )), 0.98);
     }
 }
