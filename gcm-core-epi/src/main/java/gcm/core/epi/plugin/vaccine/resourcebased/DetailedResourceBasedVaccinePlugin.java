@@ -91,7 +91,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public double getVEH(Environment environment, PersonId personId, VariantId variantId) {
-        return 0;
+        return getEfficacyFunctionValue(environment, personId, variantId, EfficacyType.VE_H);
     }
 
     @Override
