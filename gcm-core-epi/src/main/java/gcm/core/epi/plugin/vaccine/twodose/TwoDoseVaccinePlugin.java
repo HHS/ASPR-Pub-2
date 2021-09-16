@@ -173,7 +173,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
 
         VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
                 .type(AgeWeights.class)
-                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+                .defaultValue(AgeWeights.from(1.0)).build());
 
         private final TypedPropertyDefinition propertyDefinition;
 

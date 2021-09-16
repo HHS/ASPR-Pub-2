@@ -20,7 +20,7 @@ public abstract class VaccineAdministratorDefinition {
 
     @Value.Default
     public AgeWeights vaccineUptakeWeights() {
-        return ImmutableAgeWeights.builder().defaultValue(1.0).build();
+        return AgeWeights.from(1.0);
     }
 
     @Value.Default
@@ -30,12 +30,12 @@ public abstract class VaccineAdministratorDefinition {
 
     @Value.Default
     public AgeWeights vaccineHighRiskUptakeWeights() {
-        return ImmutableAgeWeights.builder().defaultValue(1.0).build();
+        return AgeWeights.from(1.0);
     }
 
     @Value.Default
     public AgeWeights vaccineInfectedUptakeWeights() {
-        return ImmutableAgeWeights.builder().defaultValue(1.0).build();
+        return AgeWeights.from(1.0);
     }
 
     @Value.Default

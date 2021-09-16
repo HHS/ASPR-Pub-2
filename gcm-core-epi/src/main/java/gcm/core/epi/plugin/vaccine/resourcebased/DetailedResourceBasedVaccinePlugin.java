@@ -102,6 +102,9 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
     private double getEfficacyFunctionValue(Environment environment, PersonId personId, VariantId variantId,
                                             EfficacyType efficacyType) {
         long numberOfDoses = environment.getPersonResourceLevel(personId, VaccineResourceId.VACCINE);
+        PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+        int ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+        AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
         if (numberOfDoses > 0) {
             List<VaccineDefinition> vaccineDefinitions = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINE_DEFINITIONS);
             int vaccineIndex = environment.getPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_INDEX);
@@ -111,7 +114,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             VaccineDefinition vaccineDefinition = vaccineDefinitions.get(vaccineIndex);
             double vaccinationTime = environment.getPersonResourceTime(personId, VaccineResourceId.VACCINE);
             double relativeTime = environment.getTime() - vaccinationTime;
-            return vaccineDefinition.getVaccineEfficacy(efficacyType, relativeTime, variantId, numberOfDoses);
+            return vaccineDefinition.getVaccineEfficacy(efficacyType, relativeTime, variantId, ageGroup, numberOfDoses);
         } else {
             return 0.0;
         }
@@ -272,7 +275,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
                 })
                 .defaultValue(ImmutableFipsCodeValue.builder()
-                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                        .defaultValue(AgeWeights.from(1.0))
                         .build())
                 .build()),
 

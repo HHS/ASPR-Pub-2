@@ -145,12 +145,12 @@ public enum GlobalProperty implements DefinedGlobalProperty {
 
     FRACTION_HIGH_RISK(TypedPropertyDefinition.builder()
             .type(AgeWeights.class)
-            .defaultValue(ImmutableAgeWeights.builder().defaultValue(0.0).build())
+            .defaultValue(AgeWeights.from(0.0))
             .build()),
 
     HIGH_RISK_HOSPITALIZATION_DEATH_MULTIPLIER(TypedPropertyDefinition.builder()
             .type(AgeWeights.class)
-            .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+            .defaultValue(AgeWeights.from(1.0))
             .build()),
 
     INFECTION_PLUGIN(TypedPropertyDefinition.builder()

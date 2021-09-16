@@ -28,7 +28,7 @@ public class AgeWeightsDeserializer extends JsonDeserializer<AgeWeights> impleme
         ObjectCodec codec = jsonParser.getCodec();
         // If the value is a double then use this as the default value
         if (jsonNode.isDouble()) {
-            return ImmutableAgeWeights.builder().defaultValue(jsonNode.doubleValue()).build();
+            return AgeWeights.from(jsonNode.doubleValue());
         }
         // Otherwise try to parse it as a full AgeWeights object
         try {

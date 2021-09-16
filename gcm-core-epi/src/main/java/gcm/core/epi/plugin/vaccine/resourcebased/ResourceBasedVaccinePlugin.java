@@ -207,7 +207,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 })
                 .type(AgeWeights.class)
                 .defaultValue(ImmutableFipsCodeValue.builder()
-                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                        .defaultValue(AgeWeights.from(1.0))
                         .build())
                 .build(),
                 VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS),
@@ -217,7 +217,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 })
                 .type(AgeWeights.class)
                 .defaultValue(ImmutableFipsCodeValue.builder()
-                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                        .defaultValue(AgeWeights.from(1.0))
                         .build())
                 .build(),
                 VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
@@ -251,11 +251,11 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
         VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
                 .type(AgeWeights.class)
-                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build()),
+                .defaultValue(AgeWeights.from(1.0)).build()),
 
         VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
                 .type(AgeWeights.class)
-                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+                .defaultValue(AgeWeights.from(1.0)).build());
 
         private final TypedPropertyDefinition propertyDefinition;
 

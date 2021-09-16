@@ -1,6 +1,8 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.propertytypes.AgeWeights;
 import org.immutables.value.Value;
 
 import java.util.Arrays;
@@ -13,33 +15,34 @@ import java.util.stream.Collectors;
 public abstract class SimpleEfficacyFunction {
 
     @Value.Default
-    double initialDelay() {
-        return 0.0;
+    AgeWeights initialDelay() {
+        return AgeWeights.from(0.0);
     }
 
     @Value.Default
-    double peakTime() {
-        return 0.0;
+    AgeWeights peakTime() {
+        return AgeWeights.from(0.0);
     }
 
     @Value.Default
-    double peakDuration() {
-        return Double.POSITIVE_INFINITY;
+    AgeWeights peakDuration() {
+        return AgeWeights.from(Double.POSITIVE_INFINITY);
     }
 
-    abstract Map<ExternalEfficacyType, Double> afterPeakHalfLife();
+    abstract Map<ExternalEfficacyType, AgeWeights> afterPeakHalfLife();
 
     @Value.Derived
-    Map<ExternalEfficacyType, Double> decayRate() {
+    Map<ExternalEfficacyType, AgeWeights> decayRate() {
         return Arrays.stream(ExternalEfficacyType.values())
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        x -> Math.log(2) / afterPeakHalfLife().getOrDefault(x, Double.POSITIVE_INFINITY)
+                        x -> afterPeakHalfLife().getOrDefault(x, AgeWeights.from(Double.POSITIVE_INFINITY))
+                                .transform(y -> Math.log(2) / y)
                 ));
     }
 
-    public double getValue(ExternalEfficacyType externalEfficacyType, double time) {
-        return getValue(externalEfficacyType, time, 0.0);
+    public double getValue(ExternalEfficacyType externalEfficacyType, AgeGroup ageGroup, double time) {
+        return getValue(externalEfficacyType, ageGroup, time, 0.0);
     }
 
     /*
@@ -47,15 +50,17 @@ public abstract class SimpleEfficacyFunction {
         Grows linearly until the peak of 1.0 at the specified time
         Remains at peak and then decays exponentially
      */
-    public double getValue(ExternalEfficacyType externalEfficacyType, double time, double initialValue) {
-        if (time < initialDelay()) {
+    public double getValue(ExternalEfficacyType externalEfficacyType, AgeGroup ageGroup, double time, double initialValue) {
+        if (time < initialDelay().getWeight(ageGroup)) {
             return initialValue;
-        } else if (time < peakTime()) {
-            return initialValue + (1.0 - initialValue) * (time - initialDelay()) / (peakTime() - initialDelay());
-        } else if (time < peakTime() + peakDuration()) {
+        } else if (time < peakTime().getWeight(ageGroup)) {
+            return initialValue + (1.0 - initialValue) * (time - initialDelay().getWeight(ageGroup)) /
+                    (peakTime().getWeight(ageGroup) - initialDelay().getWeight(ageGroup));
+        } else if (time < peakTime().getWeight(ageGroup) + peakDuration().getWeight(ageGroup)) {
             return 1.0;
         } else {
-            return Math.exp(-decayRate().get(externalEfficacyType) * (time - peakTime() - peakDuration()));
+            return Math.exp(-decayRate().get(externalEfficacyType).getWeight(ageGroup) *
+                    (time - peakTime().getWeight(ageGroup) - peakDuration().getWeight(ageGroup)));
         }
     }
 

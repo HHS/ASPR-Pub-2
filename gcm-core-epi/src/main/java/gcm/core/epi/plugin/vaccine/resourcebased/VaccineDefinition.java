@@ -1,6 +1,8 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.variants.VariantId;
 import org.immutables.value.Value;
 
@@ -31,7 +33,7 @@ public abstract class VaccineDefinition {
 
     // Only used for TWO_DOSE type
     @Value.Default
-    Map<ExternalEfficacyType, Double> firstDoseRelativeEfficacy() {
+    Map<ExternalEfficacyType, AgeWeights> firstDoseRelativeEfficacy() {
         return new EnumMap<>(ExternalEfficacyType.class);
     }
 
@@ -41,18 +43,18 @@ public abstract class VaccineDefinition {
         return 0.0;
     }
 
-    public abstract Map<ExternalEfficacyType, Double> efficacy();
+    public abstract Map<ExternalEfficacyType, AgeWeights> efficacy();
 
-    public abstract Map<VariantId, Map<ExternalEfficacyType, Double>> variantRelativeEfficacy();
+    public abstract Map<VariantId, Map<ExternalEfficacyType, AgeWeights>> variantRelativeEfficacy();
 
     // Only used for TWO_DOSE type - this is in addition to the overall variant relative efficacy
-    public abstract Map<VariantId, Map<ExternalEfficacyType, Double>> variantFirstDoseRelativeEfficacy();
+    public abstract Map<VariantId, Map<ExternalEfficacyType, AgeWeights>> variantFirstDoseRelativeEfficacy();
 
-    private Map<ExternalEfficacyType, Double> getEfficacyMapWithDefaults(Map<ExternalEfficacyType, Double> efficacyMap) {
-        Map<ExternalEfficacyType, Double> efficacyMapWithDefaults = new EnumMap<>(ExternalEfficacyType.class);
+    private Map<ExternalEfficacyType, AgeWeights> getEfficacyMapWithDefaults(Map<ExternalEfficacyType, AgeWeights> efficacyMap) {
+        Map<ExternalEfficacyType, AgeWeights> efficacyMapWithDefaults = new EnumMap<>(ExternalEfficacyType.class);
         efficacyMapWithDefaults.putAll(efficacyMap);
-        efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_S, 0.0);
-        efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_I, 0.0);
+        efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_S, AgeWeights.from(0.0));
+        efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_I, AgeWeights.from(0.0));
         efficacyMapWithDefaults.putIfAbsent(ExternalEfficacyType.VE_SP,
                 // Assume VE_P = 0 implicitly if not specified
                 efficacyMapWithDefaults.get(ExternalEfficacyType.VE_S));
@@ -71,25 +73,26 @@ public abstract class VaccineDefinition {
     @Value.Check
     VaccineDefinition insertEfficacyDefaults() {
         if (this.efficacy().keySet().size() < ExternalEfficacyType.values().length) {
-            Map<ExternalEfficacyType, Double> efficacyMapWithDefaults = getEfficacyMapWithDefaults(this.efficacy());
+            Map<ExternalEfficacyType, AgeWeights> efficacyMapWithDefaults = getEfficacyMapWithDefaults(this.efficacy());
             return ImmutableVaccineDefinition.builder()
                     .from(this)
                     .efficacy(efficacyMapWithDefaults)
                     .build();
         } else {
-            if (efficacy().values().stream().anyMatch(efficacy -> efficacy < 0 | efficacy > 1)) {
+            if (efficacy().values().stream().anyMatch(efficacy -> !efficacy.greaterThanOrEqualTo(AgeWeights.from(0)) |
+                    !efficacy.lessThanOrEqualTo(AgeWeights.from(1)))) {
                 throw new RuntimeException("Efficacy must always be between 0 and 1.");
             }
-            if (efficacy().get(ExternalEfficacyType.VE_SP) <
-                    efficacy().get(ExternalEfficacyType.VE_S)) {
+            if (!efficacy().get(ExternalEfficacyType.VE_SP).greaterThanOrEqualTo(
+                    efficacy().get(ExternalEfficacyType.VE_S))) {
                 throw new RuntimeException("VE_P implied by VE_SP and VE_S is impossible.");
             }
-            if (efficacy().get(ExternalEfficacyType.VE_SPH) <
-                    efficacy().get(ExternalEfficacyType.VE_SP)) {
+            if (!efficacy().get(ExternalEfficacyType.VE_SPH).greaterThanOrEqualTo(
+                    efficacy().get(ExternalEfficacyType.VE_SP))) {
                 throw new RuntimeException("VE_H implied by VE_SPH and VE_SP is impossible.");
             }
-            if (efficacy().get(ExternalEfficacyType.VE_SPD) <
-                    efficacy().get(ExternalEfficacyType.VE_SPH)) {
+            if (!efficacy().get(ExternalEfficacyType.VE_SPD).greaterThanOrEqualTo(
+                    efficacy().get(ExternalEfficacyType.VE_SPH))) {
                 throw new RuntimeException("VE_D implied by VE_SPD and VE_SPH is impossible.");
             }
             return this;
@@ -100,11 +103,12 @@ public abstract class VaccineDefinition {
         Derived efficacy of first dose by taking the base efficacy and multiplying by the appropriate relative efficacy
      */
     @Value.Derived
-    Map<ExternalEfficacyType, Double> firstDoseEfficacy() {
+    Map<ExternalEfficacyType, AgeWeights> firstDoseEfficacy() {
         return efficacy().entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> entry.getValue() * firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), 1.0)
+                        entry -> entry.getValue()
+                                .multiply(firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), AgeWeights.from(1.0)))
                 ));
     }
 
@@ -112,18 +116,19 @@ public abstract class VaccineDefinition {
         Derived efficacy of final dose by taking the base efficacy and adjusting for the appropriate variant multiplier
      */
     @Value.Derived
-    Map<VariantId, Map<ExternalEfficacyType, Double>> variantEfficacy() {
-        Map<VariantId, Map<ExternalEfficacyType, Double>> variantEfficacy = new HashMap<>();
+    Map<VariantId, Map<ExternalEfficacyType, AgeWeights>> variantEfficacy() {
+        Map<VariantId, Map<ExternalEfficacyType, AgeWeights>> variantEfficacy = new HashMap<>();
         Set<VariantId> variantIds = new HashSet<>(variantRelativeEfficacy().keySet());
         variantIds.addAll(variantFirstDoseRelativeEfficacy().keySet());
         for (VariantId variantId : variantIds) {
-            Map<ExternalEfficacyType, Double> relativeEfficacy = variantRelativeEfficacy().getOrDefault(variantId,
+            Map<ExternalEfficacyType, AgeWeights> relativeEfficacy = variantRelativeEfficacy().getOrDefault(variantId,
                     new EnumMap<>(ExternalEfficacyType.class));
             variantEfficacy.put(variantId,
                     efficacy().entrySet().stream()
                             .collect(Collectors.toMap(
                                     Map.Entry::getKey,
-                                    entry -> relativeEfficacy.getOrDefault(entry.getKey(), 1.0) * entry.getValue()
+                                    entry -> relativeEfficacy.getOrDefault(entry.getKey(), AgeWeights.from(1.0))
+                                            .multiply(entry.getValue())
                             )));
         }
         return variantEfficacy;
@@ -133,54 +138,55 @@ public abstract class VaccineDefinition {
         Derived efficacy of first dose by taking the base variant efficacy and adjusting for the first dose multiplier
      */
     @Value.Derived
-    Map<VariantId, Map<ExternalEfficacyType, Double>> variantFirstDoseEfficacy() {
-        Map<VariantId, Map<ExternalEfficacyType, Double>> variantFirstDoseEfficacy = new HashMap<>();
+    Map<VariantId, Map<ExternalEfficacyType, AgeWeights>> variantFirstDoseEfficacy() {
+        Map<VariantId, Map<ExternalEfficacyType, AgeWeights>> variantFirstDoseEfficacy = new HashMap<>();
         for (VariantId variantId : variantEfficacy().keySet()) {
-            Map<ExternalEfficacyType, Double> firstDoseRelativeEfficacy = variantFirstDoseRelativeEfficacy()
+            Map<ExternalEfficacyType, AgeWeights> firstDoseRelativeEfficacy = variantFirstDoseRelativeEfficacy()
                     .getOrDefault(variantId, new EnumMap<>(ExternalEfficacyType.class));
             variantFirstDoseEfficacy.put(variantId,
                     variantEfficacy().get(variantId).entrySet().stream()
                             .collect(Collectors.toMap(
                                     Map.Entry::getKey,
-                                    entry -> entry.getValue() *
-                                            firstDoseRelativeEfficacy.getOrDefault(entry.getKey(), 1.0) *
-                                            firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), 1.0)
+                                    entry -> entry.getValue()
+                                            .multiply(firstDoseRelativeEfficacy.getOrDefault(entry.getKey(), AgeWeights.from(1.0)))
+                                            .multiply(firstDoseRelativeEfficacy().getOrDefault(entry.getKey(), AgeWeights.from(1.0)))
                             )));
         }
         return variantFirstDoseEfficacy;
     }
 
-    public double getVaccineEfficacy(EfficacyType efficacyType, double timeSinceLastDose, VariantId variantId, long doses) {
+    public double getVaccineEfficacy(EfficacyType efficacyType, double timeSinceLastDose, VariantId variantId,
+                                     AgeGroup ageGroup, long doses) {
         if (doses == 0) {
             return 0;
         }
 
         switch (efficacyType) {
             case VE_S:
-                return getVaccineEfficacy(ExternalEfficacyType.VE_S, timeSinceLastDose, variantId, doses);
+                return getVaccineEfficacy(ExternalEfficacyType.VE_S, timeSinceLastDose, variantId, ageGroup, doses);
             case VE_I:
-                return getVaccineEfficacy(ExternalEfficacyType.VE_I, timeSinceLastDose, variantId, doses);
+                return getVaccineEfficacy(ExternalEfficacyType.VE_I, timeSinceLastDose, variantId, ageGroup, doses);
             case VE_P:
-                double VE_SP = getVaccineEfficacy(ExternalEfficacyType.VE_SP, timeSinceLastDose, variantId, doses);
+                double VE_SP = getVaccineEfficacy(ExternalEfficacyType.VE_SP, timeSinceLastDose, variantId, ageGroup, doses);
                 if (VE_SP < 1) {
                     return 1.0 - ((1.0 - VE_SP) / (1.0 - getVaccineEfficacy(ExternalEfficacyType.VE_S,
-                            timeSinceLastDose, variantId, doses)));
+                            timeSinceLastDose, variantId, ageGroup, doses)));
                 } else {
                     return 1.0;
                 }
             case VE_H:
-                double VE_SPH = getVaccineEfficacy(ExternalEfficacyType.VE_SPH, timeSinceLastDose, variantId, doses);
+                double VE_SPH = getVaccineEfficacy(ExternalEfficacyType.VE_SPH, timeSinceLastDose, variantId, ageGroup, doses);
                 if (VE_SPH < 1) {
                     return 1.0 - ((1.0 - VE_SPH) / (1.0 - getVaccineEfficacy(ExternalEfficacyType.VE_SP,
-                            timeSinceLastDose, variantId, doses)));
+                            timeSinceLastDose, variantId, ageGroup, doses)));
                 } else {
                     return 1.0;
                 }
             case VE_D:
-                double VE_SPD = getVaccineEfficacy(ExternalEfficacyType.VE_SPD, timeSinceLastDose, variantId, doses);
+                double VE_SPD = getVaccineEfficacy(ExternalEfficacyType.VE_SPD, timeSinceLastDose, variantId, ageGroup, doses);
                 if (VE_SPD < 1) {
                     return 1.0 - ((1.0 - VE_SPD) / (1.0 - getVaccineEfficacy(ExternalEfficacyType.VE_SPH,
-                            timeSinceLastDose, variantId, doses)));
+                            timeSinceLastDose, variantId, ageGroup, doses)));
                 } else {
                     return 1.0;
                 }
@@ -189,7 +195,8 @@ public abstract class VaccineDefinition {
         }
     }
 
-    public double getVaccineEfficacy(ExternalEfficacyType externalEfficacyType, double timeSinceLastDose, VariantId variantId, long doses) {
+    public double getVaccineEfficacy(ExternalEfficacyType externalEfficacyType, double timeSinceLastDose, VariantId variantId,
+                                     AgeGroup ageGroup, long doses) {
 
         if (doses == 0) {
             return 0;
@@ -199,45 +206,47 @@ public abstract class VaccineDefinition {
             case ONE_DOSE:
                 double maxEfficacy;
                 if (variantEfficacy().containsKey(variantId)) {
-                    maxEfficacy = variantEfficacy().get(variantId).get(externalEfficacyType);
+                    maxEfficacy = variantEfficacy().get(variantId).get(externalEfficacyType).getWeight(ageGroup);
                 } else {
-                    maxEfficacy = efficacy().get(externalEfficacyType);
+                    maxEfficacy = efficacy().get(externalEfficacyType).getWeight(ageGroup);
                 }
                 if (doses == 1) {
-                    return maxEfficacy * firstDoseEfficacyFunction().getValue(externalEfficacyType, timeSinceLastDose);
+                    return maxEfficacy * firstDoseEfficacyFunction().getValue(externalEfficacyType, ageGroup, timeSinceLastDose);
                 }
                 throw new RuntimeException("Unhandled number of doses");
             case TWO_DOSE:
                 double maxFirstDoseEfficacy;
                 if (variantFirstDoseEfficacy().containsKey(variantId)) {
-                    maxFirstDoseEfficacy = variantFirstDoseEfficacy().get(variantId).get(externalEfficacyType);
+                    maxFirstDoseEfficacy = variantFirstDoseEfficacy().get(variantId).get(externalEfficacyType).getWeight(ageGroup);
                 } else {
-                    maxFirstDoseEfficacy = firstDoseEfficacy().get(externalEfficacyType);
+                    maxFirstDoseEfficacy = firstDoseEfficacy().get(externalEfficacyType).getWeight(ageGroup);
                 }
                 if (doses == 1) {
-                    return maxFirstDoseEfficacy * firstDoseEfficacyFunction().getValue(externalEfficacyType, timeSinceLastDose);
+                    return maxFirstDoseEfficacy * firstDoseEfficacyFunction().getValue(externalEfficacyType, ageGroup, timeSinceLastDose);
                 }
                 if (doses == 2) {
                     double firstDoseEfficacyAtTimeOfSecondDose = maxFirstDoseEfficacy *
-                            firstDoseEfficacyFunction().getValue(externalEfficacyType, secondDoseDelay());
+                            firstDoseEfficacyFunction().getValue(externalEfficacyType, ageGroup, secondDoseDelay());
                     double maxSecondDoseEfficacy;
                     if (variantEfficacy().containsKey(variantId)) {
-                        maxSecondDoseEfficacy = variantEfficacy().get(variantId).get(externalEfficacyType);
+                        maxSecondDoseEfficacy = variantEfficacy().get(variantId).get(externalEfficacyType).getWeight(ageGroup);
                     } else {
-                        maxSecondDoseEfficacy = efficacy().get(externalEfficacyType);
+                        maxSecondDoseEfficacy = efficacy().get(externalEfficacyType).getWeight(ageGroup);
                     }
                     if (maxSecondDoseEfficacy > 0) {
                         double initialEfficacyFunctionValue = firstDoseEfficacyAtTimeOfSecondDose / maxSecondDoseEfficacy;
-                        return maxSecondDoseEfficacy * secondDoseEfficacyFunction().getValue(externalEfficacyType, timeSinceLastDose,
+                        return maxSecondDoseEfficacy * secondDoseEfficacyFunction().getValue(externalEfficacyType, ageGroup, timeSinceLastDose,
                                 initialEfficacyFunctionValue);
                     } else {
                         // Transition to 0 from the first dose efficacy value
-                        if (timeSinceLastDose < secondDoseEfficacyFunction().initialDelay()) {
+                        if (timeSinceLastDose < secondDoseEfficacyFunction().initialDelay().getWeight(ageGroup)) {
                             return firstDoseEfficacyAtTimeOfSecondDose;
-                        } else if (timeSinceLastDose < secondDoseEfficacyFunction().peakTime()) {
+                        } else if (timeSinceLastDose < secondDoseEfficacyFunction().peakTime().getWeight(ageGroup)) {
                             return firstDoseEfficacyAtTimeOfSecondDose *
-                                    (secondDoseEfficacyFunction().peakTime() - secondDoseEfficacyFunction().initialDelay() - timeSinceLastDose) /
-                                    (secondDoseEfficacyFunction().peakTime() - secondDoseEfficacyFunction().initialDelay());
+                                    (secondDoseEfficacyFunction().peakTime().getWeight(ageGroup) -
+                                            secondDoseEfficacyFunction().initialDelay().getWeight(ageGroup) - timeSinceLastDose) /
+                                    (secondDoseEfficacyFunction().peakTime().getWeight(ageGroup) -
+                                            secondDoseEfficacyFunction().initialDelay().getWeight(ageGroup));
                         } else {
                             return 0.0;
                         }
