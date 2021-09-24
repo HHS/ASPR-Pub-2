@@ -27,9 +27,9 @@ public class WeightsDeserializer extends JsonDeserializer<Weights<?>> implements
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
         ObjectCodec codec = jsonParser.getCodec();
-        // If the value is a double then use this as the default value
-        if (jsonNode.isDouble()) {
-            return ImmutableWeights.builder().defaultValue(jsonNode.doubleValue()).build();
+        // If the value is a double (or other number) then use this as the default value
+        if (jsonNode.isNumber()) {
+            return ImmutableWeights.builder().defaultValue(jsonNode.asDouble()).build();
         }
         // Otherwise try to parse it as a Weights<T>
         try {

@@ -26,9 +26,9 @@ public class AgeWeightsDeserializer extends JsonDeserializer<AgeWeights> impleme
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
         ObjectCodec codec = jsonParser.getCodec();
-        // If the value is a double then use this as the default value
-        if (jsonNode.isDouble()) {
-            return AgeWeights.from(jsonNode.doubleValue());
+        // If the value is a double (or other number) then use this as the default value
+        if (jsonNode.isNumber()) {
+            return AgeWeights.from(jsonNode.asDouble());
         }
         // Otherwise try to parse it as a full AgeWeights object
         try {
